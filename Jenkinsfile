@@ -51,9 +51,7 @@ spec:
                 checkout scm
                 script {
                     def branch = sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
-                    if (branch == 'dev' || branch == 'uat' || branch == 'prod') {
-                        sh "git checkout ${branch}"
-                    } else {
+                    if (!(branch in ['dev', 'uat', 'prod'])) {
                         error "Unsupported branch: ${branch}"
                     }
                 }
