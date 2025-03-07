@@ -14,14 +14,6 @@ if (!supportedBranches.contains(branch)) {
     error("Unsupported branch '${branch}'")
 }
 
-withCredentials([usernamePassword(credentialsId: 'github', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
-    sh '''
-        git config --global user.email "jenkins@santaclarautah.gov"
-        git config --global user.name "Jenkins CI"
-        git remote set-url origin https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/sccity/citynexus.git
-    '''
-}
-
 sh "git tag -a v${commitHash} -m 'Build ${commitHash}'"
 sh "git tag -a v${commitHash}-${branch} -m 'Build ${commitHash} on ${branch}'"
 sh "git push origin v${commitHash}"
