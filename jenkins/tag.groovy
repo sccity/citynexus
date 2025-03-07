@@ -1,6 +1,9 @@
 def branch = env.BRANCH_NAME
 if (!branch) {
-    branch = sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
+    branch = sh(script: 'git branch -r --contains HEAD | grep -v HEAD | sed "s/origin\\///" | head -n1 | tr -d " "', returnStdout: true).trim()
+    if (!branch) {
+        error("Could not determine branch name")
+    }
 }
 def commitHash = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
 
