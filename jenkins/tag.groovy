@@ -15,6 +15,10 @@ if (!supportedBranches.contains(branch)) {
     error("Unsupported branch '${branch}'")
 }
 
+// Configure Git user
+sh 'git config --global user.email "jenkins@santaclarautah.gov"'
+sh 'git config --global user.name "Jenkins CI"'
+
 sh "git tag -a v${commitHash} -m 'Build ${commitHash}'"
 sh "git tag -a v${commitHash}-${branch} -m 'Build ${commitHash} on ${branch}'"
 sh "git push origin v${commitHash}"
