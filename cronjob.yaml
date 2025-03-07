@@ -1,0 +1,32 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: health-poller
+  namespace: monitoring
+spec:
+  schedule: "*/15 * * * *"  # Every 15 minutes
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: health-poller
+          containers:
+          - name: health-poller
+            image: sccity/health-poller:latest
+            imagePullPolicy: Always
+            resources:
+              requests:
+                cpu: "100m"
+                memory: "128Mi"
+              limits:
+                cpu: "200m"
+                memory: "256Mi"
+            envFrom:
+            - configMapRef:
+                name: health-poller-config
+            - secretRef:
+                name: health-poller-secret
+            - secretRef:
+                name: airflow-api-credentials
+          restartPolicy: OnFailure 

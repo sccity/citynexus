@@ -1,0 +1,53 @@
+import type { App } from 'vue';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuCheckboxItem } from '@/components/ui/dropdown-menu';
+import { Select } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import Breadcrumb from '@/components/ui/breadcrumb/Breadcrumb.vue';
+import BreadcrumbItem from '@/components/ui/breadcrumb/BreadcrumbItem.vue';
+import Sidebar from '@/components/ui/sidebar/Sidebar.vue';
+import SidebarNav from '@/components/ui/sidebar/SidebarNav.vue';
+import SidebarNavItem from '@/components/ui/sidebar/SidebarNavItem.vue';
+
+export default {
+    install: (app: App) => {
+        // Register components
+        app.component('Button', Button);
+        app.component('Input', Input);
+        app.component('Label', Label);
+        app.component('Table', Table);
+        app.component('TableBody', TableBody);
+        app.component('TableCell', TableCell);
+        app.component('TableEmpty', TableEmpty);
+        app.component('TableHead', TableHead);
+        app.component('TableHeader', TableHeader);
+        app.component('TableRow', TableRow);
+        app.component('Dialog', Dialog);
+        app.component('DialogContent', DialogContent);
+        app.component('DialogDescription', DialogDescription);
+        app.component('DialogFooter', DialogFooter);
+        app.component('DialogHeader', DialogHeader);
+        app.component('DialogTitle', DialogTitle);
+        app.component('DropdownMenu', DropdownMenu);
+        app.component('DropdownMenuContent', DropdownMenuContent);
+        app.component('DropdownMenuItem', DropdownMenuItem);
+        app.component('DropdownMenuSeparator', DropdownMenuSeparator);
+        app.component('DropdownMenuTrigger', DropdownMenuTrigger);
+        app.component('DropdownMenuCheckboxItem', DropdownMenuCheckboxItem);
+        app.component('Select', Select);
+        app.component('Switch', Switch);
+        app.component('Textarea', Textarea);
+        app.component('Badge', Badge);
+        app.component('Breadcrumb', Breadcrumb);
+        app.component('BreadcrumbItem', BreadcrumbItem);
+        app.component('Sidebar', Sidebar);
+        app.component('SidebarNav', SidebarNav);
+        app.component('SidebarNavItem', SidebarNavItem);
+    }
+}; 

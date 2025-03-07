@@ -1,0 +1,15 @@
+.env
+.env.local
+.env.development
+.env.production
+.env.test
+Dockerfile
+.git
+/bootstrap/cache/*
+/storage/cache/*
+/storage/framework/views/*
+/storage/framework/sessions/*
+/storage/app/public/*
+/storage/logs/*
+automation/
+.npmrc

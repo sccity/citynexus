@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: citynexus-dev
+  namespace: webprod
+  labels:
+    app: citynexus-dev
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: citynexus-dev
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: citynexus-dev
+    spec:
+      containers:
+      - name: citynexus
+        image: sccity/citynexus:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+          protocol: TCP
+        envFrom:
+        - secretRef:
+            name: citynexus-dev
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 60
+          periodSeconds: 20
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          successThreshold: 1
+          failureThreshold: 3
+        resources:
+          requests:
+            cpu: 250m
+            memory: 256Mi
+          limits:
+            cpu: 500m
+            memory: 512Mi
+      nodeSelector:
+        Name: web-nodes-k8s-prd-aws-us-west2
+      tolerations:
+      - key: type
+        operator: Equal
+        value: web
+        effect: NoSchedule
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: citynexus-dev
+  namespace: webprod
+spec:
+  selector:
+    app: citynexus-dev
+  ports:
+  - port: 80
+    targetPort: 80
+    protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: citynexus-dev
+  namespace: webprod
+  annotations:
+    kubernetes.io/ingress.class: nginx
+spec:
+  rules:
+  - host: citynexus-dev.santaclarautah.gov
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: citynexus-dev
+            port:
+              number: 80 
