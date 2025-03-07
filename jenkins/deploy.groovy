@@ -9,6 +9,8 @@ withCredentials([file(credentialsId: 'kubeconfig', variable: 'KUBECONFIG')]) {
 
     if [ "$branch" = "dev" ]; then
         DEPLOYMENT="citynexus-dev"
+    elif [ "$branch" = "uat" ]; then
+        DEPLOYMENT="citynexus-uat"
     elif [ "$branch" = "prod" ]; then
         #DEPLOYMENT="citynexus"
         exit 0
