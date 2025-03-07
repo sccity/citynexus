@@ -20,9 +20,7 @@ sh 'git config --global user.name "Jenkins CI"'
 withCredentials([usernamePassword(credentialsId: 'git', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
     sh """
         git config credential.helper '!f() { echo username=\${GIT_USERNAME}; echo password=\${GIT_PASSWORD}; }; f'
-        git tag -a v${commitHash} -m 'Build ${commitHash}'
         git tag -a v${commitHash}-${branch} -m 'Build ${commitHash} on ${branch}'
-        git push origin v${commitHash}
         git push origin v${commitHash}-${branch}
     """
 }
