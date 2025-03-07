@@ -17,11 +17,14 @@ if (!supportedBranches.contains(branch)) {
 sh 'git config --global user.email "jenkins@santaclarautah.gov"'
 sh 'git config --global user.name "Jenkins CI"'
 
-withCredentials([gitHubApp(appCredentialsId: 'jenkins-app-auth')]) {
-    sh "git tag -a v${commitHash} -m 'Build ${commitHash}'"
-    sh "git tag -a v${commitHash}-${branch} -m 'Build ${commitHash} on ${branch}'"
-    sh "git push origin v${commitHash}"
-    sh "git push origin v${commitHash}-${branch}"
+withCredentials([usernamePassword(credentialsId: 'git', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
+    sh '''
+        git remote set-url origin "https://${GIT_USERNAME}:${GIT_PASSWORD}@github.com/sccity/citynexus.git"
+        git tag -a v${commitHash} -m "Build ${commitHash}"
+        git tag -a v${commitHash}-${branch} -m "Build ${commitHash} on ${branch}"
+        git push origin v${commitHash}
+        git push origin v${commitHash}-${branch}
+    '''
 }
 
 writeFile file: 'branch.txt', text: branch
