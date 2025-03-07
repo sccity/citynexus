@@ -4,4 +4,5 @@ export { default as MenubarItem } from './MenubarItem.vue';
 export { default as MenubarMenu } from './MenubarMenu.vue';
 export { default as MenubarSeparator } from './MenubarSeparator.vue';
 export { default as MenubarShortcut } from './MenubarShortcut.vue';
-export { default as MenubarTrigger } from './MenubarTrigger.vue'; 
+export { default as MenubarTrigger } from './MenubarTrigger.vue';
+export { default as MenubarPortal } from './MenubarPortal.vue'; 
