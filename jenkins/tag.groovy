@@ -1,4 +1,7 @@
 def branch = env.BRANCH_NAME
+if (!branch) {
+    branch = sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
+}
 def commitHash = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
 
 echo "Branch: ${branch} - Commit Hash: ${commitHash}"
