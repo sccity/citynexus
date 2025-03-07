@@ -1,37 +1,36 @@
 #!/bin/bash
 
 # Get the current branch
-branch=$(git rev-parse --abbrev-ref HEAD)
+def branch = sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
 
 # If we're in a detached HEAD state, try to get the branch from the environment
-if [ "$branch" = "HEAD" ]; then
-    branch=$BRANCH_NAME
-fi
+if (branch == 'HEAD') {
+    branch = env.BRANCH_NAME
+}
 
 # If we still don't have a branch, error out
-if [ -z "$branch" ] || [ "$branch" = "HEAD" ]; then
-    echo "Error: Could not determine branch"
-    exit 1
-fi
+if (!branch || branch == 'HEAD') {
+    error('Could not determine branch')
+}
 
 # Get the commit hash
-commit_hash=$(git rev-parse --short HEAD)
+def commitHash = sh(script: 'git rev-parse --short HEAD', returnStdout: true).trim()
 
-echo "Branch: ${branch} - Commit Hash: $commit_hash"
+echo "Branch: ${branch} - Commit Hash: ${commitHash}"
 
 # Only proceed if we're on a supported branch
-if [ "$branch" != "dev" ] && [ "$branch" != "uat" ] && [ "$branch" != "prod" ]; then
-    echo "Error: Unsupported branch '$branch'"
-    exit 1
-fi
+def supportedBranches = ['dev', 'uat', 'prod']
+if (!supportedBranches.contains(branch)) {
+    error("Unsupported branch '${branch}'")
+}
 
 # Create tags
-git tag -a "v${commit_hash}" -m "Build ${commit_hash}"
-git tag -a "v${commit_hash}-${branch}" -m "Build ${commit_hash} on ${branch}"
+sh "git tag -a v${commitHash} -m 'Build ${commitHash}'"
+sh "git tag -a v${commitHash}-${branch} -m 'Build ${commitHash} on ${branch}'"
 
 # Push tags
-git push origin "v${commit_hash}"
-git push origin "v${commit_hash}-${branch}"
+sh "git push origin v${commitHash}"
+sh "git push origin v${commitHash}-${branch}"
 
 # Save branch for other scripts
-echo $branch > branch.txt
+writeFile file: 'branch.txt', text: branch
