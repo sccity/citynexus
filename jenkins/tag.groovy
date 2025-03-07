@@ -1,37 +1,37 @@
-withCredentials([usernamePassword(credentialsId: 'git', usernameVariable: 'GIT_USERNAME', passwordVariable: 'GIT_PASSWORD')]) {
-    sh '''
-    git fetch --tags --prune --all
+#!/bin/bash
 
-    branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null)
+# Get the current branch
+branch=$(git rev-parse --abbrev-ref HEAD)
 
-    if [ "$branch" = "HEAD" ]; then
-        branch=$(git for-each-ref --sort=-committerdate refs/remotes/origin/ --format="%(refname:short)" | grep -v 'HEAD' | head -n 1 | awk -F'/' '{print $2}')
-    fi
+# If we're in a detached HEAD state, try to get the branch from the environment
+if [ "$branch" = "HEAD" ]; then
+    branch=$BRANCH_NAME
+fi
 
-    commit_hash=$(git rev-parse --short HEAD)
+# If we still don't have a branch, error out
+if [ -z "$branch" ] || [ "$branch" = "HEAD" ]; then
+    echo "Error: Could not determine branch"
+    exit 1
+fi
 
-    echo "Branch: ${branch} - Commit Hash: $commit_hash"
+# Get the commit hash
+commit_hash=$(git rev-parse --short HEAD)
 
-    git config --global user.email "jenkins@email.santaclarautah.gov"
-    git config --global user.name "Jenkins"
+echo "Branch: ${branch} - Commit Hash: $commit_hash"
 
-    if git ls-remote --tags origin | grep -q "refs/tags/$commit_hash"; then
-        echo "Tag $commit_hash already exists. Skipping tag creation."
-    else
-        echo "Creating and pushing Git tag: $commit_hash"
+# Only proceed if we're on a supported branch
+if [ "$branch" != "dev" ] && [ "$branch" != "uat" ] && [ "$branch" != "prod" ]; then
+    echo "Error: Unsupported branch '$branch'"
+    exit 1
+fi
 
-        GIT_ASKPASS=$(mktemp)
-        echo '#!/bin/sh' > $GIT_ASKPASS
-        echo 'echo "$GIT_PASSWORD"' >> $GIT_ASKPASS
-        chmod +x $GIT_ASKPASS
+# Create tags
+git tag -a "v${commit_hash}" -m "Build ${commit_hash}"
+git tag -a "v${commit_hash}-${branch}" -m "Build ${commit_hash} on ${branch}"
 
-        git tag -a "$commit_hash" -m "Automated Build $commit_hash"
-        GIT_ASKPASS=$GIT_ASKPASS git push origin tag "$commit_hash"
+# Push tags
+git push origin "v${commit_hash}"
+git push origin "v${commit_hash}-${branch}"
 
-        rm -f $GIT_ASKPASS
-    fi
-
-    echo $commit_hash > commit_hash.txt
-    echo $branch > branch.txt
-    '''
-}
+# Save branch for other scripts
+echo $branch > branch.txt

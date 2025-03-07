@@ -49,6 +49,14 @@ spec:
         stage('Checkout') {
             steps {
                 checkout scm
+                script {
+                    def branch = env.BRANCH_NAME
+                    if (branch == 'dev' || branch == 'uat' || branch == 'prod') {
+                        sh "git checkout ${branch}"
+                    } else {
+                        error "Unsupported branch: ${branch}"
+                    }
+                }
             }
         }
 
