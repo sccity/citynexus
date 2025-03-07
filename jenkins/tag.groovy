@@ -24,3 +24,4 @@ sh "git push origin v${commitHash}"
 sh "git push origin v${commitHash}-${branch}"
 
 writeFile file: 'branch.txt', text: branch
+writeFile file: 'commit_hash.txt', text: commitHash
