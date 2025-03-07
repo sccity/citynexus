@@ -49,12 +49,6 @@ spec:
         stage('Checkout') {
             steps {
                 checkout scm
-                script {
-                    def branch = sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
-                    if (!(branch in ['dev', 'uat', 'prod'])) {
-                        error "Unsupported branch: ${branch}"
-                    }
-                }
             }
         }
 
