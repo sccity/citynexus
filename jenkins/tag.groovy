@@ -1,7 +1,7 @@
-def branch = sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
+def branch = env.BRANCH_NAME
 
-if (branch == 'HEAD') {
-    branch = env.BRANCH_NAME
+if (!branch || branch == 'HEAD') {
+    branch = sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
 }
 
 if (!branch || branch == 'HEAD') {
