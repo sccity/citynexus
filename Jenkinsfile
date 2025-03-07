@@ -50,7 +50,7 @@ spec:
             steps {
                 checkout scm
                 script {
-                    def branch = env.BRANCH_NAME
+                    def branch = sh(script: 'git rev-parse --abbrev-ref HEAD', returnStdout: true).trim()
                     if (branch == 'dev' || branch == 'uat' || branch == 'prod') {
                         sh "git checkout ${branch}"
                     } else {
