@@ -1,3 +1,4 @@
+// Send email notification for fixed builds
 script {
     def logLines = currentBuild.rawBuild.getLog(100).join('\n')
     emailext(

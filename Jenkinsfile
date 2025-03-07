@@ -102,10 +102,18 @@ spec:
             }
         }
         fixed {
-            load './jenkins/fixed.groovy'
+            script {
+                container('jnlp') {
+                    load './jenkins/fixed.groovy'
+                }
+            }
         }
         failure {
-            load './jenkins/failure.groovy'
+            script {
+                container('jnlp') {
+                    load './jenkins/failure.groovy'
+                }
+            }
         }
     }
 }
