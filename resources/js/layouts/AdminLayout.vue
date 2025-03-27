@@ -20,7 +20,21 @@ import {
     Calculator,
     FileCheck,
     ChevronDown,
-    User
+    User,
+    Building2,
+    Database,
+    Network,
+    Server,
+    Activity,
+    AlertCircle,
+    BellRing,
+    Cog,
+    HelpCircle,
+    Mail,
+    Package,
+    ShieldCheck,
+    UserCog,
+    Wallet
 } from 'lucide-vue-next';
 import AppHeader from '@/components/AppHeader.vue';
 import type { BreadcrumbItem } from '@/types';
@@ -67,15 +81,21 @@ const isProfileMenuOpen = ref(false);
 
 const navigation: NavigationItem[] = [
     {
-        name: 'Dashboard',
-        href: route('dashboard'),
+        name: 'Overview',
+        href: route('admin.dashboard'),
         icon: LayoutDashboard,
     },
     {
-        name: 'Budget',
-        href: route('budget.index'),
-        icon: Calculator,
-        permission: 'access-budget',
+        name: 'Users',
+        href: route('users.manage'),
+        icon: Users,
+        permission: 'manage-users',
+    },
+    {
+        name: 'System Health',
+        href: route('admin.health'),
+        icon: Activity,
+        permission: 'admin-access',
     },
     {
         name: 'Business Licenses',
@@ -84,16 +104,22 @@ const navigation: NavigationItem[] = [
         permission: 'access-business-license',
     },
     {
+        name: 'Budget',
+        href: route('budget.index'),
+        icon: Wallet,
+        permission: 'access-budget',
+    },
+    {
         name: 'Quick Vote',
         href: route('quick-vote.index'),
         icon: Vote,
         permission: 'quick-vote-access',
     },
     {
-        name: 'GovTxt Config',
-        href: route('govtxt-config.index'),
-        icon: MessageSquare,
-        permission: 'govtxt-config-access',
+        name: 'Settings',
+        href: route('admin.settings'),
+        icon: Settings,
+        permission: 'admin-access',
     },
 ];
 
@@ -133,3 +159,13 @@ const isCurrentRoute = (url: string) => {
         </main>
     </div>
 </template>
+
+<style scoped>
+.from-primary {
+    --tw-gradient-from: var(--primary-color, #0EA5E9);
+    --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(14 165 233 / 0));
+}
+.to-primary-600 {
+    --tw-gradient-to: var(--primary-600-color, #0284C7);
+}
+</style> 

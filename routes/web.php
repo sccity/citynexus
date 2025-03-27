@@ -18,7 +18,11 @@ Route::get('/', function () {
 // Protected routes - require authentication
 Route::middleware(['auth'])->group(function () {
     Route::get('dashboard', function () {
-        return Inertia::render('Dashboard');
+        // Check if user is admin or developer
+        if (auth()->user()->hasRole('admin') || auth()->user()->hasRole('developer')) {
+            return redirect()->route('admin.dashboard');
+        }
+        return Inertia::render('UserDashboard');
     })->name('dashboard');
     
     // Budget routes with permissions

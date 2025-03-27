@@ -1,148 +1,241 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
-import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
-import { Users, Lock, Settings, FileBarChart, TrendingUp, AlertCircle } from 'lucide-vue-next';
+import { computed } from 'vue';
+import { usePage } from '@inertiajs/vue3';
+import AdminLayout from '@/layouts/AdminLayout.vue';
+import { 
+    Users, 
+    FileText, 
+    Vote, 
+    MessageSquare,
+    TrendingUp,
+    AlertCircle,
+    CheckCircle,
+    Clock,
+    ArrowUpRight,
+    ArrowDownRight,
+    Activity
+} from 'lucide-vue-next';
 
-const breadcrumbs: BreadcrumbItem[] = [
+interface User {
+    name: string;
+    avatar: string;
+}
+
+interface Auth {
+    user: User;
+}
+
+const page = usePage<{ auth: Auth }>();
+const auth = computed(() => page.props.auth);
+
+const stats = [
     {
-        title: 'Admin',
-        href: '/admin',
+        name: 'Total Users',
+        value: '2,543',
+        change: '+12%',
+        changeType: 'increase',
+        icon: Users,
+        trend: 'up',
+        description: 'Active users this month',
     },
     {
-        title: 'Dashboard',
-        href: '/admin/dashboard',
+        name: 'Active Licenses',
+        value: '1,234',
+        change: '+8%',
+        changeType: 'increase',
+        icon: FileText,
+        trend: 'up',
+        description: 'Valid business licenses',
+    },
+    {
+        name: 'Active Votes',
+        value: '12',
+        change: '-2',
+        changeType: 'decrease',
+        icon: Vote,
+        trend: 'down',
+        description: 'Ongoing voting sessions',
+    },
+    {
+        name: 'Messages Sent',
+        value: '3,456',
+        change: '+23%',
+        changeType: 'increase',
+        icon: MessageSquare,
+        trend: 'up',
+        description: 'System notifications',
     },
 ];
 
-defineProps<{
-  permissions?: string[];
-}>();
+const recentActivity = [
+    {
+        id: 1,
+        type: 'user',
+        title: 'New user registration',
+        description: 'John Doe has registered as a new user',
+        timestamp: '2 minutes ago',
+        icon: Users,
+        status: 'success',
+    },
+    {
+        id: 2,
+        type: 'license',
+        title: 'License renewal',
+        description: 'Business license #12345 has been renewed',
+        timestamp: '15 minutes ago',
+        icon: FileText,
+        status: 'success',
+    },
+    {
+        id: 3,
+        type: 'vote',
+        title: 'New vote created',
+        description: 'City Council Meeting Vote has been created',
+        timestamp: '1 hour ago',
+        icon: Vote,
+        status: 'info',
+    },
+    {
+        id: 4,
+        type: 'message',
+        title: 'System message sent',
+        description: 'Bulk notification sent to 500 users',
+        timestamp: '2 hours ago',
+        icon: MessageSquare,
+        status: 'warning',
+    },
+];
+
+const getStatusColor = (status: string) => {
+    switch (status) {
+        case 'success':
+            return 'text-green-500 dark:text-green-400';
+        case 'warning':
+            return 'text-yellow-500 dark:text-yellow-400';
+        case 'info':
+            return 'text-blue-500 dark:text-blue-400';
+        default:
+            return 'text-gray-500 dark:text-gray-400';
+    }
+};
 </script>
 
 <template>
-  <Head title="Admin Dashboard" />
+    <AdminLayout>
+        <div class="space-y-6">
+            <!-- Page Header -->
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Admin Dashboard</h1>
+                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
+                        Welcome back, {{ auth.user.name }}. Here's what's happening with your system.
+                    </p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
+                        <Activity class="mr-2 h-4 w-4" />
+                        Generate Report
+                    </button>
+                </div>
+            </div>
 
-  <AppLayout :breadcrumbs="breadcrumbs">
-    <div class="flex h-full flex-1 flex-col gap-6 p-6">
-      <h1 class="text-2xl font-bold tracking-tight text-foreground md:text-3xl">Admin Dashboard</h1>
-      
-      <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <!-- User Management Card -->
-        <div class="bg-card rounded-xl border border-border p-6 shadow-sm">
-          <div class="flex items-center gap-4">
-            <div class="bg-sage-green text-sage-green-foreground flex h-12 w-12 items-center justify-center rounded-lg">
-              <Users class="h-6 w-6" />
+            <!-- Stats Grid -->
+            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                <div
+                    v-for="stat in stats"
+                    :key="stat.name"
+                    class="relative overflow-hidden rounded-xl bg-white p-6 shadow-sm dark:bg-gray-800"
+                >
+                    <dt>
+                        <div class="absolute rounded-lg bg-primary/10 p-3 dark:bg-primary/20">
+                            <component
+                                :is="stat.icon"
+                                class="h-6 w-6 text-primary"
+                                aria-hidden="true"
+                            />
+                        </div>
+                        <p class="ml-16 truncate text-sm font-medium text-gray-500 dark:text-gray-400">
+                            {{ stat.name }}
+                        </p>
+                    </dt>
+                    <dd class="ml-16 flex items-baseline pb-6 sm:pb-7">
+                        <p class="text-2xl font-semibold text-gray-900 dark:text-white">
+                            {{ stat.value }}
+                        </p>
+                        <p
+                            :class="[
+                                stat.changeType === 'increase' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400',
+                                'ml-2 flex items-baseline text-sm font-semibold'
+                            ]"
+                        >
+                            <component
+                                :is="stat.trend === 'up' ? ArrowUpRight : ArrowDownRight"
+                                :class="[
+                                    stat.changeType === 'increase' ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400',
+                                    'h-5 w-5 flex-shrink-0 self-center'
+                                ]"
+                                aria-hidden="true"
+                            />
+                            {{ stat.change }}
+                        </p>
+                    </dd>
+                    <p class="ml-16 text-sm text-gray-500 dark:text-gray-400">
+                        {{ stat.description }}
+                    </p>
+                </div>
             </div>
-            <div>
-              <h3 class="text-lg font-medium">User Management</h3>
-              <p class="text-muted-foreground text-sm">Manage users, roles and permissions</p>
+
+            <!-- Recent Activity -->
+            <div class="bg-white shadow-sm rounded-xl dark:bg-gray-800">
+                <div class="px-6 py-5 border-b border-gray-200 dark:border-gray-700">
+                    <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
+                        Recent Activity
+                    </h3>
+                </div>
+                <div class="divide-y divide-gray-200 dark:divide-gray-700">
+                    <div
+                        v-for="activity in recentActivity"
+                        :key="activity.id"
+                        class="px-6 py-4"
+                    >
+                        <div class="flex items-center space-x-4">
+                            <div class="flex-shrink-0">
+                                <div class="relative">
+                                    <div class="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center dark:bg-primary/20">
+                                        <component
+                                            :is="activity.icon"
+                                            class="h-5 w-5 text-primary"
+                                            aria-hidden="true"
+                                        />
+                                    </div>
+                                    <div
+                                        class="absolute -top-1 -right-1 h-3 w-3 rounded-full"
+                                        :class="getStatusColor(activity.status)"
+                                    >
+                                        <div
+                                            class="h-full w-full rounded-full"
+                                            :class="getStatusColor(activity.status)"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="min-w-0 flex-1">
+                                <p class="text-sm font-medium text-gray-900 dark:text-white">
+                                    {{ activity.title }}
+                                </p>
+                                <p class="text-sm text-gray-500 dark:text-gray-400">
+                                    {{ activity.description }}
+                                </p>
+                            </div>
+                            <div>
+                                <span class="inline-flex items-center rounded-full bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+                                    {{ activity.timestamp }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
-          <div class="mt-6">
-            <a href="/users/manage" class="bg-sage-green/10 hover:bg-sage-green/20 inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium transition-colors">
-              Manage Users
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ml-1"><path d="m9 18 6-6-6-6"/></svg>
-            </a>
-          </div>
         </div>
-        
-        <!-- Permissions Card -->
-        <div class="bg-card rounded-xl border border-border p-6 shadow-sm">
-          <div class="flex items-center gap-4">
-            <div class="bg-desert-sand text-primary-foreground flex h-12 w-12 items-center justify-center rounded-lg">
-              <Lock class="h-6 w-6" />
-            </div>
-            <div>
-              <h3 class="text-lg font-medium">Permissions</h3>
-              <p class="text-muted-foreground text-sm">Configure role-based access control</p>
-            </div>
-          </div>
-          <div class="mt-6">
-            <a href="#" class="bg-desert-sand/10 hover:bg-desert-sand/20 inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium transition-colors">
-              Manage Permissions
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ml-1"><path d="m9 18 6-6-6-6"/></svg>
-            </a>
-          </div>
-        </div>
-        
-        <!-- Settings Card -->
-        <div class="bg-card rounded-xl border border-border p-6 shadow-sm">
-          <div class="flex items-center gap-4">
-            <div class="bg-sandstone text-accent-foreground flex h-12 w-12 items-center justify-center rounded-lg">
-              <Settings class="h-6 w-6" />
-            </div>
-            <div>
-              <h3 class="text-lg font-medium">System Settings</h3>
-              <p class="text-muted-foreground text-sm">Configure application settings</p>
-            </div>
-          </div>
-          <div class="mt-6">
-            <a href="#" class="bg-sandstone/10 hover:bg-sandstone/20 inline-flex items-center rounded-lg px-4 py-2 text-sm font-medium transition-colors">
-              System Settings
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="ml-1"><path d="m9 18 6-6-6-6"/></svg>
-            </a>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Stats and Analytics -->
-      <div class="bg-card rounded-xl border border-border p-6 shadow-sm">
-        <div class="mb-6 flex items-center justify-between">
-          <h3 class="text-xl font-medium">System Analytics</h3>
-          <div class="flex gap-2">
-            <button class="bg-muted text-muted-foreground hover:bg-muted/80 rounded-md px-3 py-1 text-sm">Daily</button>
-            <button class="bg-primary text-primary-foreground hover:bg-primary/90 rounded-md px-3 py-1 text-sm">Weekly</button>
-            <button class="bg-muted text-muted-foreground hover:bg-muted/80 rounded-md px-3 py-1 text-sm">Monthly</button>
-          </div>
-        </div>
-        
-        <div class="grid gap-6 md:grid-cols-3">
-          <div class="flex flex-col items-center rounded-lg border border-border p-4">
-            <div class="text-sage-green mb-2">
-              <TrendingUp class="h-6 w-6" />
-            </div>
-            <p class="text-2xl font-bold">87%</p>
-            <p class="text-muted-foreground text-center text-sm">System Uptime</p>
-          </div>
-          
-          <div class="flex flex-col items-center rounded-lg border border-border p-4">
-            <div class="text-desert-sand mb-2">
-              <Users class="h-6 w-6" />
-            </div>
-            <p class="text-2xl font-bold">24</p>
-            <p class="text-muted-foreground text-center text-sm">Active Users Today</p>
-          </div>
-          
-          <div class="flex flex-col items-center rounded-lg border border-border p-4">
-            <div class="text-sandstone mb-2">
-              <FileBarChart class="h-6 w-6" />
-            </div>
-            <p class="text-2xl font-bold">142</p>
-            <p class="text-muted-foreground text-center text-sm">Reports Generated</p>
-          </div>
-        </div>
-      </div>
-      
-      <!-- Admin Permissions -->
-      <div class="bg-card rounded-xl border border-border p-6 shadow-sm">
-        <div class="mb-4 flex items-center gap-3">
-          <AlertCircle class="text-sage-green h-5 w-5" />
-          <h3 class="text-xl font-medium">Your Admin Permissions</h3>
-        </div>
-        
-        <div v-if="permissions && permissions.length" class="bg-muted rounded-lg p-4">
-          <ul class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            <li v-for="permission in permissions" :key="permission" class="flex items-center gap-2">
-              <div class="text-primary flex h-6 w-6 items-center justify-center rounded-full">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
-              </div>
-              <span>{{ permission }}</span>
-            </li>
-          </ul>
-        </div>
-        <p v-else class="text-muted-foreground italic">No specific permissions found.</p>
-      </div>
-    </div>
-  </AppLayout>
+    </AdminLayout>
 </template> 
