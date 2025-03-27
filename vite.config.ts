@@ -35,4 +35,13 @@ export default defineConfig({
             host: 'localhost',
         },
     },
+    build: {
+        manifest: true,
+        rollupOptions: {
+            output: {
+                assetFileNames: 'assets/[name]-[hash][extname]',
+            },
+        },
+    },
+    base: process.env.APP_URL || '/',
 });

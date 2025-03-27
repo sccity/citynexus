@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const instance = axios.create({
-    baseURL: '/api',
+    baseURL: window.location.origin,
     headers: {
         'X-Requested-With': 'XMLHttpRequest',
         'Accept': 'application/json',
@@ -10,8 +10,12 @@ const instance = axios.create({
     withCredentials: true, // Important for Keycloak session handling
 });
 
-// Add request interceptor for CSRF and session handling
+// Add a request interceptor to ensure HTTPS
 instance.interceptors.request.use((config) => {
+    // Ensure the URL uses HTTPS
+    if (config.url && !config.url.startsWith('http')) {
+        config.url = window.location.origin + config.url;
+    }
     // Get the CSRF token from the meta tag
     const token = document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     if (token) {

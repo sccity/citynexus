@@ -249,18 +249,44 @@ onUnmounted(() => {
 
             <!-- Quick Stats -->
             <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card v-for="stat in stats" :key="stat.name">
+                <Card>
                     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle class="text-sm font-medium">{{ stat.name }}</CardTitle>
-                        <component :is="stat.icon" class="h-4 w-4 text-muted-foreground" />
+                        <CardTitle class="text-sm font-medium">Active Projects</CardTitle>
+                        <FileText class="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div class="text-2xl font-bold">{{ stat.value }}</div>
-                        <p class="text-xs text-muted-foreground">{{ stat.description }}</p>
-                        <div class="flex items-center text-xs" :class="stat.changeType === 'increase' ? 'text-green-600' : 'text-red-600'">
-                            <component :is="stat.trend === 'up' ? ArrowUpRight : ArrowDownRight" class="mr-1 h-4 w-4" />
-                            {{ stat.change }}
-                        </div>
+                        <div class="text-2xl font-bold">12</div>
+                        <p class="text-xs text-muted-foreground">+2 from last month</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle class="text-sm font-medium">Pending Approvals</CardTitle>
+                        <FileCheck class="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div class="text-2xl font-bold">5</div>
+                        <p class="text-xs text-muted-foreground">3 require attention</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle class="text-sm font-medium">Active Voters</CardTitle>
+                        <Users class="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div class="text-2xl font-bold">2,345</div>
+                        <p class="text-xs text-muted-foreground">+180 this week</p>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle class="text-sm font-medium">Notifications</CardTitle>
+                        <Bell class="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div class="text-2xl font-bold">3</div>
+                        <p class="text-xs text-muted-foreground">2 unread messages</p>
                     </CardContent>
                 </Card>
             </div>

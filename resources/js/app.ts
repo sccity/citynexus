@@ -5,7 +5,8 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import type { DefineComponent } from 'vue';
 import { createApp, h } from 'vue';
 import { ZiggyVue } from '../../vendor/tightenco/ziggy';
-import { initializeTheme } from './composables/useAppearance';
+import { createPinia } from 'pinia';
+import ThemeProvider from './providers/ThemeProvider.vue';
 import shadcnPlugin from './plugins/shadcn';
 
 // Extend ImportMeta interface for Vite...
@@ -22,14 +23,16 @@ declare module 'vite/client' {
 }
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+const pinia = createPinia();
 
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,
     resolve: (name) => resolvePageComponent(`./pages/${name}.vue`, import.meta.glob<DefineComponent>('./pages/**/*.vue')),
     setup({ el, App, props, plugin }) {
-        createApp({ render: () => h(App, props) })
+        createApp({ render: () => h(ThemeProvider, null, { default: () => h(App, props) }) })
             .use(plugin)
             .use(ZiggyVue)
+            .use(pinia)
             .use(shadcnPlugin)
             .mount(el);
     },
@@ -37,6 +40,3 @@ createInertiaApp({
         color: '#4B5563',
     },
 });
-
-// This will set light / dark mode on page load...
-initializeTheme();

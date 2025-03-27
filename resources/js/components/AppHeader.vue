@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { Link, usePage, router } from '@inertiajs/vue3';
 import type { Method } from '@inertiajs/core';
 import { 
@@ -21,7 +21,10 @@ import {
     FileCheck,
     ChevronDown,
     User,
-    Building2
+    Building2,
+    Moon,
+    Sun,
+    Monitor
 } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,6 +36,9 @@ import {
     DropdownMenuShortcut,
     DropdownMenuLabel,
     DropdownMenuGroup,
+    DropdownMenuSub,
+    DropdownMenuSubTrigger,
+    DropdownMenuSubContent
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
@@ -40,6 +46,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { getInitials } from '@/composables/useInitials';
 import type { Auth, BreadcrumbItem } from '@/types';
 import { cn } from '@/lib/utils';
+import { useSettingsStore } from '@/stores/settings';
 
 interface Props {
     breadcrumbs?: BreadcrumbItem[];
@@ -79,6 +86,63 @@ const navigate = (routeName: string) => {
 const logout = () => {
     router.post(route('logout'));
 };
+
+const settingsStore = useSettingsStore();
+
+// Add theme toggle function
+const toggleTheme = (newTheme: string) => {
+    settingsStore.updateTheme(newTheme);
+};
+
+// Add keyboard shortcuts
+onMounted(() => {
+    window.addEventListener('keydown', (e) => {
+        // Command palette shortcut (⌘K)
+        if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+            e.preventDefault();
+            isCommandOpen.value = true;
+        }
+        
+        // Navigation shortcuts
+        if ((e.metaKey || e.ctrlKey) && e.key === 'a' && isAdmin.value) {
+            e.preventDefault();
+            navigate('admin.dashboard');
+        }
+        if ((e.metaKey || e.ctrlKey) && e.key === 'd') {
+            e.preventDefault();
+            navigate('dashboard');
+        }
+        if ((e.metaKey || e.ctrlKey) && e.key === 'b' && hasPermission('access-budget')) {
+            e.preventDefault();
+            navigate('budget.index');
+        }
+        if ((e.metaKey || e.ctrlKey) && e.key === 'l' && hasPermission('access-business-license')) {
+            e.preventDefault();
+            navigate('business-license.index');
+        }
+        if ((e.metaKey || e.ctrlKey) && e.key === 'v' && hasPermission('quick-vote-access')) {
+            e.preventDefault();
+            navigate('quick-vote.index');
+        }
+        if ((e.metaKey || e.ctrlKey) && e.key === 'g' && hasPermission('govtxt-config-access')) {
+            e.preventDefault();
+            navigate('govtxt-config.index');
+        }
+    });
+});
+
+// Add command palette items
+const commandItems = computed(() => {
+    const items = [
+        { title: 'Dashboard', href: route('dashboard'), icon: LayoutDashboard },
+        ...(isAdmin.value ? [{ title: 'Admin Dashboard', href: route('admin.dashboard'), icon: Gauge }] : []),
+        ...(hasPermission('access-budget') ? [{ title: 'Budget Tool', href: route('budget.index'), icon: Calculator }] : []),
+        ...(hasPermission('access-business-license') ? [{ title: 'Business Licenses', href: route('business-license.index'), icon: Building2 }] : []),
+        ...(hasPermission('quick-vote-access') ? [{ title: 'Quick Vote', href: route('quick-vote.index'), icon: Vote }] : []),
+        ...(hasPermission('govtxt-config-access') ? [{ title: 'GovTxt Config', href: route('govtxt-config.index'), icon: MessageSquare }] : [])
+    ];
+    return items;
+});
 </script>
 
 <template>
@@ -220,7 +284,27 @@ const logout = () => {
                                 <User class="mr-2 h-4 w-4" />
                                 <span>Profile</span>
                             </DropdownMenuItem>
-                            <DropdownMenuItem>
+                            <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>
+                                    <Settings class="mr-2 h-4 w-4" />
+                                    <span>Theme</span>
+                                </DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent>
+                                    <DropdownMenuItem @click="toggleTheme('light')">
+                                        <Sun class="mr-2 h-4 w-4" />
+                                        <span>Light</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem @click="toggleTheme('dark')">
+                                        <Moon class="mr-2 h-4 w-4" />
+                                        <span>Dark</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem @click="toggleTheme('system')">
+                                        <Monitor class="mr-2 h-4 w-4" />
+                                        <span>System</span>
+                                    </DropdownMenuItem>
+                                </DropdownMenuSubContent>
+                            </DropdownMenuSub>
+                            <DropdownMenuItem @click="settingsStore.toggleSidebar">
                                 <Settings class="mr-2 h-4 w-4" />
                                 <span>Settings</span>
                             </DropdownMenuItem>
@@ -248,16 +332,12 @@ const logout = () => {
                     <CommandEmpty>No results found.</CommandEmpty>
                     <CommandGroup title="Navigation">
                         <CommandItem
-                            v-for="item in [
-                                { title: 'Dashboard', href: route('dashboard'), icon: LayoutDashboard },
-                                ...(isAdmin ? [{ title: 'Admin Dashboard', href: route('admin.dashboard'), icon: Gauge }] : []),
-                                ...(hasPermission('access-budget') ? [{ title: 'Budget Tool', href: route('budget.index'), icon: Calculator }] : []),
-                                ...(hasPermission('access-business-license') ? [{ title: 'Business Licenses', href: route('business-license.index'), icon: Building2 }] : []),
-                                ...(hasPermission('quick-vote-access') ? [{ title: 'Quick Vote', href: route('quick-vote.index'), icon: Vote }] : []),
-                                ...(hasPermission('govtxt-config-access') ? [{ title: 'GovTxt Config', href: route('govtxt-config.index'), icon: MessageSquare }] : [])
-                            ]"
+                            v-for="item in commandItems"
                             :key="item.title"
-                            @select="() => navigate(item.href)"
+                            @select="() => {
+                                navigate(item.href);
+                                isCommandOpen = false;
+                            }"
                         >
                             <component :is="item.icon" class="mr-2 h-4 w-4" />
                             {{ item.title }}
