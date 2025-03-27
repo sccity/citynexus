@@ -38,15 +38,16 @@ RUN mkdir -p /var/www/html/storage/app/public/activity_files \
     && chown -R www-data:www-data /var/www/html/bootstrap/cache \
     && chmod -R 775 /var/www/html/bootstrap/cache
 
+# Install dependencies and build assets
+RUN npm ci && npm run build
+
 COPY nginx.conf /etc/nginx/sites-available/default
 RUN rm /etc/nginx/sites-enabled/default \
     && ln -s /etc/nginx/sites-available/default /etc/nginx/sites-enabled/
 
-#RUN npm ci || (rm -rf node_modules package-lock.json && npm install)
-
-#COPY clean.sh /clean.sh
-#RUN chmod +x /clean.sh
-#RUN ./clean.sh
+COPY clean.sh /clean.sh
+RUN chmod +x /clean.sh
+RUN ./clean.sh
 
 COPY start.sh /start.sh
 RUN chmod +x /start.sh
