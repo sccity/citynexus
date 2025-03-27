@@ -13,8 +13,28 @@ import {
     Clock,
     ArrowUpRight,
     ArrowDownRight,
-    Activity
+    Activity,
+    CalendarDays,
+    Building,
+    FileBarChart,
+    CheckCircle2,
+    XCircle,
+    Server,
+    Globe2,
+    LayoutDashboard,
+    Bell,
+    Wallet,
+    Settings,
+    Database,
+    FileCheck
 } from 'lucide-vue-next';
+import { type BreadcrumbItem } from '@/types';
+import { Head } from '@inertiajs/vue3';
+import { ref, onMounted, onUnmounted } from 'vue';
+import axios from '@/lib/axios';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 
 interface User {
     name: string;
@@ -27,6 +47,13 @@ interface Auth {
 
 const page = usePage<{ auth: Auth }>();
 const auth = computed(() => page.props.auth);
+
+const breadcrumbs: BreadcrumbItem[] = [
+    {
+        title: 'Admin Dashboard',
+        href: '/admin/dashboard',
+    },
+];
 
 const stats = [
     {
@@ -118,123 +145,244 @@ const getStatusColor = (status: string) => {
             return 'text-gray-500 dark:text-gray-400';
     }
 };
+
+const k8sStatus = ref({
+    healthy: 0,
+    warning: 0,
+    error: 0,
+    total: 0,
+    timestamp: '',
+    deployments: []
+});
+
+const airflowStatus = ref({
+    total: 0,
+    running: 0,
+    failed: 0,
+    dags: []
+});
+
+const websiteStatus = ref([]);
+const lastUpdated = ref(new Date().toLocaleTimeString());
+const updateInterval = ref<number | null>(null);
+const loading = ref(true);
+const error = ref<string | null>(null);
+
+const fetchSystemStatus = async () => {
+    try {
+        loading.value = true;
+        error.value = null;
+        
+        console.log('Fetching system status...');
+        const response = await axios.get('system-status');
+        console.log('System status response:', response.data);
+        
+        // Check if we have an error in the response
+        if (response.data.error) {
+            throw new Error(response.data.details || response.data.error);
+        }
+        
+        k8sStatus.value = response.data.kubernetes;
+        airflowStatus.value = response.data.airflow;
+        websiteStatus.value = response.data.websites;
+        lastUpdated.value = new Date(response.data.timestamp).toLocaleTimeString();
+    } catch (e: any) {
+        console.error('Error details:', {
+            response: e.response?.data,
+            status: e.response?.status,
+            headers: e.response?.headers,
+            message: e.message
+        });
+        error.value = e.response?.data?.details || e.response?.data?.error || e.message || 'Failed to fetch system status';
+        console.error('Error fetching system status:', e);
+        
+        // Set default values on error
+        k8sStatus.value = {
+            healthy: 0,
+            warning: 0,
+            error: 0,
+            total: 0,
+            timestamp: '',
+            deployments: []
+        };
+        airflowStatus.value = {
+            total: 0,
+            running: 0,
+            failed: 0,
+            dags: []
+        };
+        websiteStatus.value = [];
+    } finally {
+        loading.value = false;
+    }
+};
+
+onMounted(() => {
+    fetchSystemStatus();
+    // Update every 120 seconds
+    updateInterval.value = window.setInterval(fetchSystemStatus, 120000);
+});
+
+onUnmounted(() => {
+    if (updateInterval.value) {
+        clearInterval(updateInterval.value);
+    }
+});
 </script>
 
 <template>
-    <AdminLayout>
-        <div class="space-y-6">
-            <!-- Page Header -->
+    <Head title="Admin Dashboard" />
+
+    <AdminLayout :breadcrumbs="breadcrumbs">
+        <div class="container space-y-6 py-8">
+            <!-- Welcome Section -->
             <div class="flex items-center justify-between">
                 <div>
-                    <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Admin Dashboard</h1>
-                    <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                        Welcome back, {{ auth.user.name }}. Here's what's happening with your system.
-                    </p>
+                    <h1 class="text-3xl font-bold tracking-tight">Admin Dashboard</h1>
+                    <p class="text-muted-foreground">System overview and health status</p>
                 </div>
-                <div class="flex items-center space-x-4">
-                    <button class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-primary hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary">
-                        <Activity class="mr-2 h-4 w-4" />
-                        Generate Report
-                    </button>
+                <div class="flex items-center gap-2">
+                    <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
+                    <p class="text-sm text-muted-foreground">Last updated: {{ lastUpdated }}</p>
                 </div>
             </div>
 
-            <!-- Stats Grid -->
-            <div class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                <div
-                    v-for="stat in stats"
-                    :key="stat.name"
-                    class="relative overflow-hidden rounded-xl bg-white p-6 shadow-sm dark:bg-gray-800"
-                >
-                    <dt>
-                        <div class="absolute rounded-lg bg-primary/10 p-3 dark:bg-primary/20">
-                            <component
-                                :is="stat.icon"
-                                class="h-6 w-6 text-primary"
-                                aria-hidden="true"
-                            />
-                        </div>
-                        <p class="ml-16 truncate text-sm font-medium text-gray-500 dark:text-gray-400">
-                            {{ stat.name }}
-                        </p>
-                    </dt>
-                    <dd class="ml-16 flex items-baseline pb-6 sm:pb-7">
-                        <p class="text-2xl font-semibold text-gray-900 dark:text-white">
-                            {{ stat.value }}
-                        </p>
-                        <p
-                            :class="[
-                                stat.changeType === 'increase' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400',
-                                'ml-2 flex items-baseline text-sm font-semibold'
-                            ]"
-                        >
-                            <component
-                                :is="stat.trend === 'up' ? ArrowUpRight : ArrowDownRight"
-                                :class="[
-                                    stat.changeType === 'increase' ? 'text-green-500 dark:text-green-400' : 'text-red-500 dark:text-red-400',
-                                    'h-5 w-5 flex-shrink-0 self-center'
-                                ]"
-                                aria-hidden="true"
-                            />
+            <!-- Quick Stats -->
+            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                <Card v-for="stat in stats" :key="stat.name">
+                    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle class="text-sm font-medium">{{ stat.name }}</CardTitle>
+                        <component :is="stat.icon" class="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div class="text-2xl font-bold">{{ stat.value }}</div>
+                        <p class="text-xs text-muted-foreground">{{ stat.description }}</p>
+                        <div class="flex items-center text-xs" :class="stat.changeType === 'increase' ? 'text-green-600' : 'text-red-600'">
+                            <component :is="stat.trend === 'up' ? ArrowUpRight : ArrowDownRight" class="mr-1 h-4 w-4" />
                             {{ stat.change }}
-                        </p>
-                    </dd>
-                    <p class="ml-16 text-sm text-gray-500 dark:text-gray-400">
-                        {{ stat.description }}
-                    </p>
-                </div>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
 
-            <!-- Recent Activity -->
-            <div class="bg-white shadow-sm rounded-xl dark:bg-gray-800">
-                <div class="px-6 py-5 border-b border-gray-200 dark:border-gray-700">
-                    <h3 class="text-base font-semibold leading-6 text-gray-900 dark:text-white">
-                        Recent Activity
-                    </h3>
-                </div>
-                <div class="divide-y divide-gray-200 dark:divide-gray-700">
-                    <div
-                        v-for="activity in recentActivity"
-                        :key="activity.id"
-                        class="px-6 py-4"
-                    >
-                        <div class="flex items-center space-x-4">
-                            <div class="flex-shrink-0">
-                                <div class="relative">
-                                    <div class="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center dark:bg-primary/20">
-                                        <component
-                                            :is="activity.icon"
-                                            class="h-5 w-5 text-primary"
-                                            aria-hidden="true"
-                                        />
+            <!-- Main Content Grid -->
+            <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-7">
+                <!-- System Health -->
+                <Card class="col-span-4">
+                    <CardHeader>
+                        <CardTitle>System Health</CardTitle>
+                        <CardDescription>Infrastructure and service status</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div class="space-y-6">
+                            <!-- Kubernetes Status -->
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <h3 class="text-sm font-medium">Kubernetes Deployments</h3>
+                                    <Badge :variant="k8sStatus.error > 0 ? 'destructive' : k8sStatus.warning > 0 ? 'warning' : 'success'">
+                                        {{ k8sStatus.healthy }}/{{ k8sStatus.total }} Healthy
+                                    </Badge>
+                                </div>
+                                <div class="grid grid-cols-3 gap-4">
+                                    <div class="flex flex-col items-center">
+                                        <Badge variant="success" class="mb-1">{{ k8sStatus.healthy }}</Badge>
+                                        <span class="text-xs text-muted-foreground">Healthy</span>
                                     </div>
-                                    <div
-                                        class="absolute -top-1 -right-1 h-3 w-3 rounded-full"
-                                        :class="getStatusColor(activity.status)"
-                                    >
-                                        <div
-                                            class="h-full w-full rounded-full"
-                                            :class="getStatusColor(activity.status)"
-                                        />
+                                    <div class="flex flex-col items-center">
+                                        <Badge variant="warning" class="mb-1">{{ k8sStatus.warning }}</Badge>
+                                        <span class="text-xs text-muted-foreground">Warning</span>
+                                    </div>
+                                    <div class="flex flex-col items-center">
+                                        <Badge variant="destructive" class="mb-1">{{ k8sStatus.error }}</Badge>
+                                        <span class="text-xs text-muted-foreground">Error</span>
                                     </div>
                                 </div>
                             </div>
-                            <div class="min-w-0 flex-1">
-                                <p class="text-sm font-medium text-gray-900 dark:text-white">
-                                    {{ activity.title }}
-                                </p>
-                                <p class="text-sm text-gray-500 dark:text-gray-400">
-                                    {{ activity.description }}
-                                </p>
-                            </div>
+
+                            <!-- Airflow Status -->
                             <div>
-                                <span class="inline-flex items-center rounded-full bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
-                                    {{ activity.timestamp }}
-                                </span>
+                                <div class="flex items-center justify-between mb-2">
+                                    <h3 class="text-sm font-medium">Airflow DAGs</h3>
+                                    <Badge :variant="airflowStatus.failed > 0 ? 'destructive' : 'success'">
+                                        {{ airflowStatus.running }}/{{ airflowStatus.total }} Running
+                                    </Badge>
+                                </div>
+                                <div class="grid grid-cols-3 gap-4">
+                                    <div class="flex flex-col items-center">
+                                        <Badge variant="default" class="mb-1">{{ airflowStatus.total }}</Badge>
+                                        <span class="text-xs text-muted-foreground">Total</span>
+                                    </div>
+                                    <div class="flex flex-col items-center">
+                                        <Badge variant="success" class="mb-1">{{ airflowStatus.running }}</Badge>
+                                        <span class="text-xs text-muted-foreground">Running</span>
+                                    </div>
+                                    <div class="flex flex-col items-center">
+                                        <Badge variant="destructive" class="mb-1">{{ airflowStatus.failed }}</Badge>
+                                        <span class="text-xs text-muted-foreground">Failed</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Website Status -->
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <h3 class="text-sm font-medium">Website Health</h3>
+                                    <Badge variant="success">All Systems Operational</Badge>
+                                </div>
+                                <div class="space-y-2">
+                                    <div v-for="site in websiteStatus" :key="site.name" class="flex items-center justify-between">
+                                        <div>
+                                            <div class="flex items-center gap-2">
+                                                <span class="font-medium">{{ site.name }}</span>
+                                                <Badge :variant="site.status === 'healthy' ? 'success' : 'destructive'">
+                                                    {{ site.status }}
+                                                </Badge>
+                                            </div>
+                                            <div class="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                                                <span>{{ site.latency }}</span>
+                                                <span>·</span>
+                                                <span>Uptime {{ site.uptime }}</span>
+                                            </div>
+                                        </div>
+                                        <Button variant="ghost" size="sm" asChild>
+                                            <a :href="'https://' + site.name" target="_blank" rel="noopener noreferrer">
+                                                Visit →
+                                            </a>
+                                        </Button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
+                    </CardContent>
+                </Card>
+
+                <!-- Quick Actions -->
+                <Card class="col-span-3">
+                    <CardHeader>
+                        <CardTitle>Quick Actions</CardTitle>
+                        <CardDescription>Common admin tasks and shortcuts</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div class="space-y-4">
+                            <Button variant="outline" class="w-full justify-start">
+                                <Users class="mr-2 h-4 w-4" />
+                                Manage Users
+                            </Button>
+                            <Button variant="outline" class="w-full justify-start">
+                                <Settings class="mr-2 h-4 w-4" />
+                                System Settings
+                            </Button>
+                            <Button variant="outline" class="w-full justify-start">
+                                <Activity class="mr-2 h-4 w-4" />
+                                View Health Details
+                            </Button>
+                            <Button variant="outline" class="w-full justify-start">
+                                <Database class="mr-2 h-4 w-4" />
+                                Database Management
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
             </div>
         </div>
     </AdminLayout>

@@ -20,4 +20,14 @@ class DashboardController extends Controller
             'permissions' => $permissions,
         ]);
     }
+
+    public function health()
+    {
+        return Inertia::render('Admin/Health');
+    }
+
+    public function settings()
+    {
+        return Inertia::render('Admin/Settings');
+    }
 }

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { Link, usePage } from '@inertiajs/vue3';
+import { Link, usePage, router } from '@inertiajs/vue3';
 import type { Method } from '@inertiajs/core';
 import { 
     LayoutDashboard, 
@@ -52,6 +52,8 @@ const props = withDefaults(defineProps<Props>(), {
 const page = usePage<{ auth: Auth }>();
 const auth = computed(() => page.props.auth);
 const isCommandOpen = ref(false);
+const userAvatar = computed(() => auth.value?.user?.avatar || '');
+const userName = computed(() => auth.value?.user?.name || '');
 
 const isAdmin = computed(() => Boolean(
     auth.value?.user?.keycloak_roles?.some(role => 
@@ -70,8 +72,12 @@ const hasPermission = (permission?: string) => {
            );
 };
 
-const navigate = (href: string) => {
-    window.location.href = href;
+const navigate = (routeName: string) => {
+    router.visit(route(routeName));
+};
+
+const logout = () => {
+    router.post(route('logout'));
 };
 </script>
 
@@ -100,15 +106,15 @@ const navigate = (href: string) => {
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" class="w-52">
-                        <DropdownMenuItem @click="navigate(route('dashboard'))">
-                            <LayoutDashboard class="mr-2 h-4 w-4" />
-                            <span>Dashboard</span>
-                            <DropdownMenuShortcut>⌘D</DropdownMenuShortcut>
-                        </DropdownMenuItem>
-                        <DropdownMenuItem v-if="isAdmin" @click="navigate(route('admin.dashboard'))">
+                        <DropdownMenuItem v-if="isAdmin" @click="navigate('admin.dashboard')">
                             <Gauge class="mr-2 h-4 w-4" />
                             <span>Admin Dashboard</span>
                             <DropdownMenuShortcut>⌘A</DropdownMenuShortcut>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem @click="navigate('dashboard')">
+                            <LayoutDashboard class="mr-2 h-4 w-4" />
+                            <span>User Dashboard</span>
+                            <DropdownMenuShortcut>⌘D</DropdownMenuShortcut>
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
@@ -123,12 +129,12 @@ const navigate = (href: string) => {
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" class="w-52">
-                        <DropdownMenuItem v-if="hasPermission('access-budget')" @click="navigate(route('budget.index'))">
+                        <DropdownMenuItem v-if="hasPermission('access-budget')" @click="navigate('budget.index')">
                             <Calculator class="mr-2 h-4 w-4" />
                             <span>Budget Tool</span>
                             <DropdownMenuShortcut>⌘B</DropdownMenuShortcut>
                         </DropdownMenuItem>
-                        <DropdownMenuItem v-if="hasPermission('access-business-license')" @click="navigate(route('business-license.index'))">
+                        <DropdownMenuItem v-if="hasPermission('access-business-license')" @click="navigate('business-license.index')">
                             <Building2 class="mr-2 h-4 w-4" />
                             <span>Business Licenses</span>
                             <DropdownMenuShortcut>⌘L</DropdownMenuShortcut>
@@ -146,12 +152,12 @@ const navigate = (href: string) => {
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" class="w-52">
-                        <DropdownMenuItem v-if="hasPermission('quick-vote-access')" @click="navigate(route('quick-vote.index'))">
+                        <DropdownMenuItem v-if="hasPermission('quick-vote-access')" @click="navigate('quick-vote.index')">
                             <Vote class="mr-2 h-4 w-4" />
                             <span>Quick Vote</span>
                             <DropdownMenuShortcut>⌘V</DropdownMenuShortcut>
                         </DropdownMenuItem>
-                        <DropdownMenuItem v-if="hasPermission('govtxt-config-access')" @click="navigate(route('govtxt-config.index'))">
+                        <DropdownMenuItem v-if="hasPermission('govtxt-config-access')" @click="navigate('govtxt-config.index')">
                             <MessageSquare class="mr-2 h-4 w-4" />
                             <span>GovTxt Config</span>
                             <DropdownMenuShortcut>⌘G</DropdownMenuShortcut>
@@ -201,47 +207,29 @@ const navigate = (href: string) => {
                             class="relative h-8 w-8 rounded-full"
                         >
                             <Avatar class="h-8 w-8">
-                                <AvatarImage v-if="auth.user.avatar" :src="auth.user.avatar" :alt="auth.user.name" />
-                                <AvatarFallback class="bg-primary/10 text-primary">
-                                    {{ getInitials(auth.user?.name) }}
-                                </AvatarFallback>
+                                <AvatarImage :src="userAvatar" :alt="userName" />
+                                <AvatarFallback>{{ getInitials(userName) }}</AvatarFallback>
                             </Avatar>
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" class="w-56">
-                        <DropdownMenuLabel class="font-normal">
-                            <div class="flex flex-col space-y-1">
-                                <p class="text-sm font-medium leading-none">{{ auth.user.name }}</p>
-                                <p class="text-xs leading-none text-muted-foreground">
-                                    {{ auth.user.email }}
-                                </p>
-                            </div>
-                        </DropdownMenuLabel>
+                        <DropdownMenuLabel>My Account</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuGroup>
-                            <Link :href="route('profile.edit')" class="w-full">
-                                <DropdownMenuItem class="cursor-pointer">
-                                    <User class="mr-2 h-4 w-4" />
-                                    <span>Profile</span>
-                                    <DropdownMenuShortcut>⇧⌘P</DropdownMenuShortcut>
-                                </DropdownMenuItem>
-                            </Link>
-                            <Link :href="route('appearance')" class="w-full">
-                                <DropdownMenuItem class="cursor-pointer">
-                                    <Settings class="mr-2 h-4 w-4" />
-                                    <span>Settings</span>
-                                    <DropdownMenuShortcut>⌘,</DropdownMenuShortcut>
-                                </DropdownMenuItem>
-                            </Link>
+                            <DropdownMenuItem>
+                                <User class="mr-2 h-4 w-4" />
+                                <span>Profile</span>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                                <Settings class="mr-2 h-4 w-4" />
+                                <span>Settings</span>
+                            </DropdownMenuItem>
                         </DropdownMenuGroup>
                         <DropdownMenuSeparator />
-                        <Link :href="route('logout')" method="post" as="button" class="w-full">
-                            <DropdownMenuItem class="cursor-pointer">
-                                <LogOut class="mr-2 h-4 w-4" />
-                                <span>Log out</span>
-                                <DropdownMenuShortcut>⇧⌘Q</DropdownMenuShortcut>
-                            </DropdownMenuItem>
-                        </Link>
+                        <DropdownMenuItem @click="logout">
+                            <LogOut class="mr-2 h-4 w-4" />
+                            <span>Log out</span>
+                        </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>

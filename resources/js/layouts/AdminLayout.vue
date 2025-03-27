@@ -142,6 +142,11 @@ const hasPermission = (permission?: string) => {
 const isCurrentRoute = (url: string) => {
     return page.url.startsWith(url);
 };
+
+// Filter navigation items based on permissions
+const filteredNavigation = computed(() => {
+    return navigation.filter(item => hasPermission(item.permission));
+});
 </script>
 
 <template>

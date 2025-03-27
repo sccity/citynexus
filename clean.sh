@@ -3,6 +3,20 @@
 # Ensure the script stops if any command fails
 set -e
 
+# Parse command line arguments
+DUMP_AUTOLOAD=false
+while getopts "a" opt; do
+    case $opt in
+        a)
+            DUMP_AUTOLOAD=true
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            exit 1
+            ;;
+    esac
+done
+
 echo "Starting Laravel cleanup..."
 
 rm -fR bootstrap/cache/*
@@ -28,6 +42,10 @@ php artisan view:clear
 echo "Clearing event cache..."
 php artisan event:clear
 
+# Generate Ziggy routes
+echo "Generating Ziggy routes..."
+php artisan ziggy:generate
+
 # Optionally rebuild the cache for better performance
 echo "Rebuilding config cache..."
 php artisan config:cache
@@ -38,9 +56,10 @@ php artisan route:cache
 echo "Rebuilding view cache..."
 php artisan view:cache
 
-# Optionally optimize autoload files (composer dump-autoload)
-#echo "Optimizing Composer autoload..."
-#composer dump-autoload -o
+# Only run composer dump-autoload if the -a flag is set
+if [ "$DUMP_AUTOLOAD" = true ]; then
+    echo "Optimizing Composer autoload..."
+    composer dump-autoload -o
+fi
 
 echo "Laravel cleanup completed successfully!"
-composer dump-autoload

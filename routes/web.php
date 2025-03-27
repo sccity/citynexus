@@ -17,13 +17,15 @@ Route::get('/', function () {
 
 // Protected routes - require authentication
 Route::middleware(['auth'])->group(function () {
-    Route::get('dashboard', function () {
-        // Check if user is admin or developer
-        if (auth()->user()->hasRole('admin') || auth()->user()->hasRole('developer')) {
-            return redirect()->route('admin.dashboard');
-        }
-        return Inertia::render('UserDashboard');
-    })->name('dashboard');
+    // Regular user dashboard
+    Route::get('dashboard', [App\Http\Controllers\DashboardController::class, 'index'])->name('dashboard');
+    
+    // Admin routes
+    Route::middleware(['role:admin|developer'])->prefix('admin')->group(function () {
+        Route::get('dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('admin.dashboard');
+        Route::get('health', [App\Http\Controllers\Admin\DashboardController::class, 'health'])->name('admin.health');
+        Route::get('settings', [App\Http\Controllers\Admin\DashboardController::class, 'settings'])->name('admin.settings');
+    });
     
     // Budget routes with permissions
     Route::middleware(['permission:access-budget'])->prefix('budget')->group(function () {
@@ -66,11 +68,6 @@ Route::middleware(['auth'])->group(function () {
                 'user_permissions' => $user_permissions
             ]);
         })->name('business-license.index');
-    });
-    
-    // Admin routes
-    Route::middleware(['role:admin|developer'])->prefix('admin')->group(function () {
-        Route::get('dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
     });
     
     // Example of permission-based route
