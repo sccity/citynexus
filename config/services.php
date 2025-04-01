@@ -54,7 +54,8 @@ return [
         'openid_connect_path' => env('KEYCLOAK_OPENID_CONNECT_PATH', '/protocol/openid-connect'),
         'allowed_redirect_uris' => [
             'https://citynexus-dev.santaclarautah.gov/auth/callback',
-            'http://localhost/auth/callback',
+            'http://localhost:8000/auth/callback',
+            'http://127.0.0.1:8000/auth/callback',
         ],
     ],
     'finance_api' => [

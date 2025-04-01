@@ -10,9 +10,9 @@ use App\Http\Controllers\GovTxtConfigController;
 
 Route::get('/', function () {
     if (auth()->check()) {
-        return redirect()->route('dashboard');
+        return redirect()->to(str_replace('https://', 'http://', route('dashboard')));
     }
-    return redirect()->route('login.keycloak');
+    return redirect()->to(str_replace('https://', 'http://', route('login.keycloak')));
 });
 
 // Protected routes - require authentication

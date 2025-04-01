@@ -10,9 +10,9 @@ const instance = axios.create({
     withCredentials: true, // Important for Keycloak session handling
 });
 
-// Add a request interceptor to ensure HTTPS
+// Add a request interceptor
 instance.interceptors.request.use((config) => {
-    // Ensure the URL uses HTTPS
+    // Ensure the URL uses the current protocol
     if (config.url && !config.url.startsWith('http')) {
         config.url = window.location.origin + config.url;
     }
@@ -29,8 +29,8 @@ instance.interceptors.response.use(
     response => response,
     error => {
         if (error.response?.status === 401) {
-            // Redirect to Keycloak login
-            window.location.href = '/auth/keycloak';
+            // Redirect to Keycloak login using the current protocol
+            window.location.href = window.location.origin + '/auth/keycloak';
             return Promise.reject(error);
         }
         return Promise.reject(error);

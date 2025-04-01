@@ -33,6 +33,11 @@ class KeycloakController extends Controller
             $redirectUri = config('services.keycloak.redirect');
             $openidPath = config('services.keycloak.openid_connect_path');
             
+            // Force HTTP for local development
+            if (app()->environment('local')) {
+                $redirectUri = str_replace('https://', 'http://', $redirectUri);
+            }
+            
             // Build the query parameters manually to avoid double encoding
             $state = bin2hex(random_bytes(16));
             $params = [
@@ -80,6 +85,11 @@ class KeycloakController extends Controller
             $clientSecret = config('services.keycloak.client_secret');
             $redirectUri = config('services.keycloak.redirect');
             $openidPath = config('services.keycloak.openid_connect_path');
+            
+            // Force HTTP for local development
+            if (app()->environment('local')) {
+                $redirectUri = str_replace('https://', 'http://', $redirectUri);
+            }
             
             // Exchange authorization code for tokens
             $tokenUrl = "{$baseUrl}/realms/{$realm}{$openidPath}/token";

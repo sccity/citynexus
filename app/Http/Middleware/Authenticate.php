@@ -12,6 +12,15 @@ class Authenticate extends Middleware
      */
     protected function redirectTo(Request $request): ?string
     {
-        return $request->expectsJson() ? null : route('login');
+        if ($request->expectsJson()) {
+            return null;
+        }
+
+        // Force HTTP for local development
+        if (app()->environment('local')) {
+            return str_replace('https://', 'http://', route('login'));
+        }
+
+        return route('login');
     }
 } 
