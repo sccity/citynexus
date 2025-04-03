@@ -64,6 +64,10 @@ class HandleInertiaRequests extends Middleware
                 'user' => $userData,
                 'user_permissions' => $userData ? $userData['permissions'] : [], // For easier access in components
             ],
+            'keycloak' => [
+                'realm' => config('services.keycloak.realm'),
+                'client_id' => config('services.keycloak.client_id'),
+            ],
         ];
     }
 }

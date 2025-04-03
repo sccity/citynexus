@@ -112,3 +112,8 @@ export interface Website {
     latency: string;
     uptime: string;
 }
+
+export interface KeycloakConfig {
+    realm: string;
+    client_id: string;
+}

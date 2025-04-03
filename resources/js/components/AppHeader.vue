@@ -44,9 +44,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { getInitials } from '@/composables/useInitials';
-import type { Auth, BreadcrumbItem } from '@/types';
+import type { Auth, BreadcrumbItem, KeycloakConfig } from '@/types';
 import { cn } from '@/lib/utils';
 import { useSettingsStore } from '@/stores/settings';
+import { useAppearance } from '@/composables/useAppearance';
+import type { Appearance } from '@/composables/useAppearance';
 
 interface Props {
     breadcrumbs?: BreadcrumbItem[];
@@ -56,42 +58,96 @@ const props = withDefaults(defineProps<Props>(), {
     breadcrumbs: () => [],
 });
 
-const page = usePage<{ auth: Auth }>();
+const page = usePage<{ auth: Auth, keycloak: KeycloakConfig }>();
 const auth = computed(() => page.props.auth);
+const keycloakConfig = computed(() => page.props.keycloak);
 const isCommandOpen = ref(false);
 const userAvatar = computed(() => auth.value?.user?.avatar || '');
 const userName = computed(() => auth.value?.user?.name || '');
 
-const isAdmin = computed(() => Boolean(
-    auth.value?.user?.keycloak_roles?.some(role => 
-        role.role_name === 'admin' || 
-        role.role_name === 'developer'
-    )
-));
+// Add debugging
+onMounted(() => {
+    console.log('Full User Object:', JSON.stringify(auth.value?.user, null, 2));
+    console.log('Keycloak Roles:', JSON.stringify(auth.value?.user?.keycloak_roles, null, 2));
+    console.log('User Permissions:', auth.value?.user_permissions);
+    console.log('Is Admin:', isAdmin.value);
+    console.log('Admin check details:', {
+        roles: auth.value?.user?.keycloak_roles,
+        hasAdminRole: auth.value?.user?.keycloak_roles?.some(role => 
+            role.role_name === 'admin' || 
+            role.role_name === 'developer'
+        ),
+        roleNames: auth.value?.user?.keycloak_roles?.map(role => role.role_name)
+    });
+});
+
+const isAdmin = computed(() => {
+    const hasAdminRole = Boolean(
+        auth.value?.user?.keycloak_roles?.some(role => 
+            role.role_name === 'admin'
+        )
+    );
+    console.log('Admin check:', {
+        roles: auth.value?.user?.keycloak_roles,
+        hasAdminRole
+    });
+    return hasAdminRole;
+});
 
 const hasPermission = (permission?: string) => {
     if (!permission) return true;
-    return auth.value?.user_permissions?.includes(permission) || 
-           auth.value?.user?.keycloak_roles?.some(role => 
-               role.role_name === 'admin' || 
-               role.role_name === 'developer' || 
-               role.role_name === permission
-           );
+    
+    // Check if user has admin role
+    const hasAdminRole = auth.value?.user?.keycloak_roles?.some(role => 
+        role.role_name === 'admin'
+    );
+    
+    if (hasAdminRole) return true;
+    
+    // Check if user has the specific permission
+    const hasSpecificPermission = auth.value?.user_permissions?.includes(permission);
+    if (hasSpecificPermission) return true;
+    
+    // Check if user has a role that matches the permission
+    const hasMatchingRole = auth.value?.user?.keycloak_roles?.some(role => 
+        role.role_name === permission
+    );
+    
+    return hasMatchingRole || false;
 };
 
 const navigate = (routeName: string) => {
-    router.visit(route(routeName));
+    router.visit(route(routeName), {
+        method: 'get',
+        preserveState: true,
+        preserveScroll: true,
+        onError: (errors) => {
+            console.error('Navigation error:', errors);
+        }
+    });
 };
 
 const logout = () => {
-    router.post(route('logout'));
+    // Redirect to Keycloak logout endpoint
+    const keycloakBaseUrl = 'https://sso.santaclarautah.gov';
+    const keycloakRealm = 'SANTACLARA-DEV';
+    const redirectUri = encodeURIComponent('http://127.0.0.1:8000');
+    const logoutUrl = `${keycloakBaseUrl}/realms/${keycloakRealm}/protocol/openid-connect/logout?redirect_uri=${redirectUri}`;
+    
+    // Clear any local storage or session data
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // Redirect to Keycloak logout
+    window.location.href = logoutUrl;
 };
 
 const settingsStore = useSettingsStore();
+const { updateAppearance } = useAppearance();
 
 // Add theme toggle function
-const toggleTheme = (newTheme: string) => {
-    settingsStore.updateTheme(newTheme);
+const toggleTheme = (newTheme: Appearance) => {
+    updateAppearance(newTheme);
 };
 
 // Add keyboard shortcuts
@@ -143,9 +199,33 @@ const commandItems = computed(() => {
     ];
     return items;
 });
+
+const currentRoute = computed(() => {
+    return window.location.pathname;
+});
+
+const isActive = (routeName: string) => {
+    return currentRoute.value === route(routeName);
+};
+
+const isDevelopment = computed(() => {
+    return window.location.hostname === 'localhost' || 
+           window.location.hostname === '127.0.0.1';
+});
 </script>
 
 <template>
+    <!-- Debug Bar (only in dev mode) -->
+    <div v-if="isDevelopment" class="bg-yellow-300 text-black text-xs p-1">
+        Debug Info: 
+        User: {{ userName || 'Guest' }} | 
+        Admin: {{ isAdmin ? 'Yes' : 'No' }} | 
+        Realm: {{ keycloakConfig?.realm }} | 
+        Client: {{ keycloakConfig?.client_id }} | 
+        Roles: {{ auth?.user?.keycloak_roles?.map(r => r.role_name).join(', ') || 'None' }} | 
+        Permissions: {{ auth?.user_permissions?.join(', ') || 'None' }}
+    </div>
+
     <div class="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div class="container flex h-14 items-center">
             <!-- Logo -->
@@ -163,19 +243,31 @@ const commandItems = computed(() => {
                 <!-- Home Dropdown -->
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" class="h-8 px-3">
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            class="h-8 px-3"
+                            :class="{ 'bg-accent': isActive('dashboard') || isActive('admin.dashboard') }"
+                        >
                             <LayoutDashboard class="mr-2 h-4 w-4" />
                             Home
                             <ChevronDown class="ml-2 h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" class="w-52">
-                        <DropdownMenuItem v-if="isAdmin" @click="navigate('admin.dashboard')">
+                        <DropdownMenuItem 
+                            v-if="isAdmin" 
+                            @click="navigate('admin.dashboard')"
+                            :class="{ 'bg-accent': isActive('admin.dashboard') }"
+                        >
                             <Gauge class="mr-2 h-4 w-4" />
                             <span>Admin Dashboard</span>
                             <DropdownMenuShortcut>⌘A</DropdownMenuShortcut>
                         </DropdownMenuItem>
-                        <DropdownMenuItem @click="navigate('dashboard')">
+                        <DropdownMenuItem 
+                            @click="navigate('dashboard')"
+                            :class="{ 'bg-accent': isActive('dashboard') }"
+                        >
                             <LayoutDashboard class="mr-2 h-4 w-4" />
                             <span>User Dashboard</span>
                             <DropdownMenuShortcut>⌘D</DropdownMenuShortcut>
@@ -186,19 +278,32 @@ const commandItems = computed(() => {
                 <!-- Finance Dropdown -->
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" class="h-8 px-3">
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            class="h-8 px-3"
+                            :class="{ 'bg-accent': isActive('budget.index') || isActive('business-license.index') }"
+                        >
                             <Calculator class="mr-2 h-4 w-4" />
                             Finance
                             <ChevronDown class="ml-2 h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" class="w-52">
-                        <DropdownMenuItem v-if="hasPermission('access-budget')" @click="navigate('budget.index')">
+                        <DropdownMenuItem 
+                            v-if="hasPermission('access-budget')" 
+                            @click="navigate('budget.index')"
+                            :class="{ 'bg-accent': isActive('budget.index') }"
+                        >
                             <Calculator class="mr-2 h-4 w-4" />
                             <span>Budget Tool</span>
                             <DropdownMenuShortcut>⌘B</DropdownMenuShortcut>
                         </DropdownMenuItem>
-                        <DropdownMenuItem v-if="hasPermission('access-business-license')" @click="navigate('business-license.index')">
+                        <DropdownMenuItem 
+                            v-if="hasPermission('access-business-license')" 
+                            @click="navigate('business-license.index')"
+                            :class="{ 'bg-accent': isActive('business-license.index') }"
+                        >
                             <Building2 class="mr-2 h-4 w-4" />
                             <span>Business Licenses</span>
                             <DropdownMenuShortcut>⌘L</DropdownMenuShortcut>
@@ -209,19 +314,32 @@ const commandItems = computed(() => {
                 <!-- Tools Dropdown -->
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="sm" class="h-8 px-3">
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            class="h-8 px-3"
+                            :class="{ 'bg-accent': isActive('quick-vote.index') || isActive('govtxt-config.index') }"
+                        >
                             <Settings class="mr-2 h-4 w-4" />
                             Tools
                             <ChevronDown class="ml-2 h-4 w-4" />
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start" class="w-52">
-                        <DropdownMenuItem v-if="hasPermission('quick-vote-access')" @click="navigate('quick-vote.index')">
+                        <DropdownMenuItem 
+                            v-if="hasPermission('quick-vote-access')" 
+                            @click="navigate('quick-vote.index')"
+                            :class="{ 'bg-accent': isActive('quick-vote.index') }"
+                        >
                             <Vote class="mr-2 h-4 w-4" />
                             <span>Quick Vote</span>
                             <DropdownMenuShortcut>⌘V</DropdownMenuShortcut>
                         </DropdownMenuItem>
-                        <DropdownMenuItem v-if="hasPermission('govtxt-config-access')" @click="navigate('govtxt-config.index')">
+                        <DropdownMenuItem 
+                            v-if="hasPermission('govtxt-config-access')" 
+                            @click="navigate('govtxt-config.index')"
+                            :class="{ 'bg-accent': isActive('govtxt-config.index') }"
+                        >
                             <MessageSquare class="mr-2 h-4 w-4" />
                             <span>GovTxt Config</span>
                             <DropdownMenuShortcut>⌘G</DropdownMenuShortcut>
