@@ -117,14 +117,25 @@ const hasPermission = (permission?: string) => {
 };
 
 const navigate = (routeName: string) => {
-    router.visit(route(routeName), {
+    console.log(`[AppHeader] navigate called for routeName: ${routeName}`);
+    try {
+        const targetUrl = route(routeName);
+        console.log(`[AppHeader] Generated URL for ${routeName}: ${targetUrl}`);
+        if (!targetUrl) {
+            console.error(`[AppHeader] route('${routeName}') generated an invalid URL!`);
+            return; // Stop if URL is invalid
+        }
+        router.visit(targetUrl, {
         method: 'get',
         preserveState: true,
         preserveScroll: true,
         onError: (errors) => {
-            console.error('Navigation error:', errors);
+                console.error(`[AppHeader] Navigation error for ${routeName}:`, errors);
         }
     });
+    } catch (e) {
+        console.error(`[AppHeader] Error during route('${routeName}') generation or router.visit:`, e);
+    }
 };
 
 const logout = () => {
@@ -223,7 +234,7 @@ const isDevelopment = computed(() => {
         Realm: {{ keycloakConfig?.realm }} | 
         Client: {{ keycloakConfig?.client_id }} | 
         Roles: {{ auth?.user?.keycloak_roles?.map(r => r.role_name).join(', ') || 'None' }} | 
-        Permissions: {{ auth?.user_permissions?.join(', ') || 'None' }}
+        Specific Permissions: {{ auth?.user_permissions?.join(', ') || 'None' }}
     </div>
 
     <div class="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

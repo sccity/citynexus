@@ -1,7 +1,6 @@
 import axios from 'axios';
 
 const instance = axios.create({
-    baseURL: window.location.origin,
     headers: {
         'X-Requested-With': 'XMLHttpRequest',
         'Accept': 'application/json',
@@ -12,10 +11,6 @@ const instance = axios.create({
 
 // Add a request interceptor
 instance.interceptors.request.use((config) => {
-    // Ensure the URL uses the current protocol
-    if (config.url && !config.url.startsWith('http')) {
-        config.url = window.location.origin + config.url;
-    }
     // Get the CSRF token from the meta tag
     const token = document.head.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
     if (token) {

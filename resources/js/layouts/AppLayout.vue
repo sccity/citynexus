@@ -23,6 +23,7 @@ import {
     User
 } from 'lucide-vue-next';
 import AppHeader from '@/components/AppHeader.vue';
+import Toaster from '@/components/ui/toast/Toaster.vue';
 import type { BreadcrumbItem } from '@/types';
 
 interface Props {
@@ -119,7 +120,7 @@ const isCurrentRoute = (url: string) => {
 </script>
 
 <template>
-    <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div class="min-h-screen bg-gray-50 dark:bg-gray-900 relative">
         <!-- Top Navigation -->
         <AppHeader :breadcrumbs="breadcrumbs" />
 
@@ -131,5 +132,8 @@ const isCurrentRoute = (url: string) => {
                 </div>
             </div>
         </main>
+        
+        <!-- Toast Provider -->
+        <Toaster /> 
     </div>
 </template>

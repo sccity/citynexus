@@ -107,26 +107,15 @@
                                         {{ item.active ? 'Active' : 'Inactive' }}
                                     </Badge>
                                 </TableCell>
-                                <TableCell class="text-right">
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button variant="ghost" size="icon" class="h-8 w-8 p-0">
-                                                <span class="sr-only">Open menu</span>
-                                                <MoreHorizontal class="h-4 w-4" />
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuItem @click="openModal(item)">
-                                                <Pencil class="mr-2 h-4 w-4" />
-                                                Edit
-                                            </DropdownMenuItem>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem @click="deleteAutoResponse(item)" class="text-destructive">
-                                                <Trash2 class="mr-2 h-4 w-4" />
-                                                Delete
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
+                                <TableCell class="text-right space-x-1">
+                                    <Button variant="ghost" size="icon" class="h-8 w-8 p-0" @click="openModal(item)">
+                                        <span class="sr-only">Edit</span>
+                                        <Pencil class="h-4 w-4" />
+                                    </Button>
+                                    <Button variant="ghost" size="icon" class="h-8 w-8 p-0 text-destructive hover:text-destructive" @click="deleteAutoResponse(item)">
+                                        <span class="sr-only">Delete</span>
+                                        <Trash2 class="h-4 w-4" />
+                                    </Button>
                                 </TableCell>
                             </TableRow>
                             <TableEmpty v-if="paginatedResponses.length === 0" colspan="5">
@@ -245,8 +234,11 @@
                         <Label for="active">Active</Label>
                     </div>
                     <DialogFooter>
-                        <Button type="button" variant="secondary" @click="closeModal">Cancel</Button>
-                        <Button type="submit">Save changes</Button>
+                        <Button type="button" variant="secondary" @click="closeModal" :disabled="isSaving">Cancel</Button>
+                        <Button type="submit" :disabled="isSaving">
+                            <Loader2 v-if="isSaving" class="mr-2 h-4 w-4 animate-spin" />
+                            <span v-if="!isSaving">Save changes</span>
+                        </Button>
                     </DialogFooter>
                 </form>
             </DialogContent>
@@ -256,7 +248,7 @@
 
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { ref, computed, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -268,7 +260,8 @@ import { Select } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Search, Filter, ChevronDown, ArrowUpDown, MoreHorizontal, Pencil, Trash2, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight } from 'lucide-vue-next';
+import { Plus, Search, Filter, ChevronDown, ArrowUpDown, MoreHorizontal, Pencil, Trash2, ChevronsLeft, ChevronLeft, ChevronRight, ChevronsRight, Loader2 } from 'lucide-vue-next';
+import { useToast } from '@/components/ui/toast';
 
 interface AutoResponse {
     id: number;
@@ -282,6 +275,9 @@ const props = defineProps<{
     autoResponses: AutoResponse[];
 }>();
 
+// Toast
+const { toast } = useToast();
+
 // Search and filter state
 const searchQuery = ref('');
 const statusFilter = ref('all');
@@ -293,6 +289,7 @@ const sortDirection = ref('asc');
 // Modal state
 const isModalOpen = ref(false);
 const isEditing = ref(false);
+const isSaving = ref(false);
 const form = ref({
     id: null as number | null,
     name: '',
@@ -386,8 +383,38 @@ const closeModal = () => {
 };
 
 const submitForm = () => {
-    // TODO: Implement form submission
-    closeModal();
+    isSaving.value = true;
+    const responseName = form.value.name;
+    const options = {
+        preserveScroll: true,
+        onSuccess: () => {
+            closeModal();
+            toast({
+                title: isEditing.value ? 'Response Updated' : 'Response Created',
+                description: `The auto response "${responseName}" has been saved successfully.`,
+            });
+        },
+        onError: (errors: any) => {
+            console.error('Error saving response:', errors);
+            const firstError = Object.values(errors)[0];
+            toast({
+                title: 'Save Failed',
+                description: typeof firstError === 'string' ? firstError : 'An error occurred while saving the response.',
+                variant: 'destructive',
+            });
+        },
+        onFinish: () => {
+            isSaving.value = false;
+        },
+    };
+
+    if (isEditing.value) {
+        // Update existing record
+        router.put(route('govtxt-config.update', form.value.id), form.value, options);
+    } else {
+        // Create new record
+        router.post(route('govtxt-config.store'), form.value, options);
+    }
 };
 
 const deleteAutoResponse = (item: AutoResponse) => {
