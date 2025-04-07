@@ -58,6 +58,18 @@ return [
             'http://127.0.0.1:8000/auth/callback',
         ],
     ],
+
+    // Add Keycloak Admin Config
+    'keycloak_admin' => [
+        'base_url' => env('KEYCLOAK_ADMIN_BASE_URL'),
+        'realm' => env('KEYCLOAK_ADMIN_REALM'),
+        'client_id' => env('KEYCLOAK_ADMIN_CLIENT_ID'),
+        'client_secret' => env('KEYCLOAK_ADMIN_CLIENT_SECRET'),
+        'grant_type' => env('KEYCLOAK_ADMIN_GRANT_TYPE', 'client_credentials'),
+        'username' => env('KEYCLOAK_ADMIN_USERNAME'), // Needed only for password grant
+        'password' => env('KEYCLOAK_ADMIN_PASSWORD'), // Needed only for password grant
+    ],
+
     'finance_api' => [
         'base_url' => env('FINANCE_API_URL'),
         'token' => env('FINANCE_API_TOKEN'),

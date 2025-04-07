@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\FinanceApiController;
 use App\Http\Controllers\QuickVoteController;
 use App\Http\Controllers\GovTxtConfigController;
+use App\Http\Controllers\Admin\AdminUserController;
 
 Route::get('/', function () {
     if (auth()->check()) {
@@ -25,6 +26,11 @@ Route::middleware(['auth'])->group(function () {
         Route::get('dashboard', [App\Http\Controllers\Admin\DashboardController::class, 'index'])->name('admin.dashboard');
         Route::get('health', [App\Http\Controllers\Admin\DashboardController::class, 'health'])->name('admin.health');
         Route::get('settings', [App\Http\Controllers\Admin\DashboardController::class, 'settings'])->name('admin.settings');
+
+        // User Management Routes (Keycloak Roles)
+        Route::get('/users', [AdminUserController::class, 'index'])->name('admin.users.index');
+        Route::put('/users/{user}/roles', [AdminUserController::class, 'updateRoles'])->name('admin.users.updateRoles');
+        Route::get('/keycloak/roles', [AdminUserController::class, 'getRealmRoles'])->name('admin.keycloak.roles');
     });
     
     // Budget routes with permissions

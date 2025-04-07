@@ -48,6 +48,20 @@ interface Auth {
     user: User;
 }
 
+interface WebsiteStatus {
+    name: string;
+    status: 'healthy' | 'error' | string; // Be more specific if possible
+    latency: string;
+    uptime: string;
+}
+
+interface K8sDeployment {
+    name: string;
+    status: 'healthy' | 'warning' | 'error' | string; // Be more specific if possible
+    namespace?: string;
+    // Add other relevant fields from your API response
+}
+
 const page = usePage<{ auth: Auth }>();
 const auth = computed(() => page.props.auth);
 
@@ -155,7 +169,7 @@ const k8sStatus = ref({
     error: 0,
     total: 0,
     timestamp: '',
-    deployments: []
+    deployments: [] as K8sDeployment[] // Type the deployments array
 });
 
 const airflowStatus = ref({
@@ -165,11 +179,29 @@ const airflowStatus = ref({
     dags: []
 });
 
-const websiteStatus = ref([]);
+const websiteStatus = ref<WebsiteStatus[]>([]); // Type the websiteStatus array
 const lastUpdated = ref(new Date().toLocaleTimeString());
 const updateInterval = ref<number | null>(null);
 const loading = ref(true);
 const error = ref<string | null>(null);
+
+const sortedWebsiteStatus = computed(() => {
+    return [...websiteStatus.value].sort((a, b) => {
+        const aIsHealthy = a.status === 'healthy';
+        const bIsHealthy = b.status === 'healthy';
+        if (aIsHealthy && !bIsHealthy) {
+            return 1; // a (healthy) comes after b (not healthy)
+        }
+        if (!aIsHealthy && bIsHealthy) {
+            return -1; // a (not healthy) comes before b (healthy)
+        }
+        return a.name.localeCompare(b.name); // Otherwise, sort by name
+    });
+});
+
+const problemDeployments = computed(() => {
+    return k8sStatus.value.deployments.filter(d => d.status !== 'healthy');
+});
 
 const fetchSystemStatus = async () => {
     try {
@@ -297,130 +329,166 @@ onUnmounted(() => {
                 </Card>
             </div>
 
-            <!-- Main Content Grid -->
-            <div class="grid grid-cols-1 gap-6 lg:grid-cols-7">
+            <!-- Main Content Grid: Changed to 2x2 on large screens -->
+            <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
                 
-                <!-- System Health Card -->
-                <Card class="col-span-1 lg:col-span-4">
+                <!-- Kubernetes Card -->
+                <Card>
                     <CardHeader>
-                        <CardTitle>System Health</CardTitle>
-                        <CardDescription>Overview of infrastructure and service status.</CardDescription>
+                        <CardTitle class="flex items-center gap-2">
+                            <Server class="h-5 w-5" />
+                            Kubernetes Status
+                        </CardTitle>
+                        <CardDescription>Deployment health overview.</CardDescription>
                     </CardHeader>
-                    <CardContent class="space-y-8"> 
-                        <!-- Skeleton Loader for the entire section -->
-                        <div v-if="loading" class="space-y-8">
-                            <div class="space-y-2">
-                                <Skeleton class="h-5 w-1/2" />
-                                <div class="flex justify-between">
-                                    <Skeleton class="h-4 w-1/4" />
-                                    <Skeleton class="h-6 w-20" />
-                                </div>
+                    <CardContent>
+                         <!-- Skeleton for K8s -->
+                         <div v-if="loading" class="space-y-4">
+                            <div class="flex justify-between">
+                                <Skeleton class="h-4 w-1/4" />
+                                <Skeleton class="h-6 w-20" />
                             </div>
-                             <div class="space-y-2">
-                                <Skeleton class="h-5 w-1/2" />
-                                <div class="flex justify-between">
-                                    <Skeleton class="h-4 w-1/4" />
-                                    <Skeleton class="h-6 w-20" />
-                                </div>
-                            </div>
-                             <div class="space-y-2">
-                                <Skeleton class="h-5 w-1/2" />
-                                <Skeleton class="h-4 w-1/3" />
-                                <div class="space-y-2 pt-2">
-                                    <Skeleton class="h-8 w-full" />
-                                    <Skeleton class="h-8 w-full" />
-                                    <Skeleton class="h-8 w-full" />
-                                </div>
+                            <Skeleton class="h-4 w-1/3 mt-2" /> 
+                            <div class="space-y-2 pt-2">
+                                <Skeleton class="h-5 w-full" />
+                                <Skeleton class="h-5 w-full" />
                             </div>
                         </div>
-
-                        <!-- Actual Content -->
-                        <div v-else class="space-y-8">
-                            <!-- Kubernetes Section -->
-                            <div>
-                                <div class="flex items-center justify-between mb-3">
-                                    <div class="flex items-center gap-2">
-                                        <Server class="h-5 w-5 text-muted-foreground" />
-                                        <h3 class="font-semibold">Kubernetes Deployments</h3>
-                                    </div>
-                                    <Badge :variant="k8sStatus.error > 0 ? 'destructive' : k8sStatus.warning > 0 ? 'warning' : 'success'">
-                                        {{ k8sStatus.healthy }}/{{ k8sStatus.total }} Healthy
-                                    </Badge>
-                                </div>
-                                <!-- Optional: Add more detailed K8s stats if needed -->
-                            </div>
-                            
-                            <!-- Airflow Section -->
-                            <div>
-                                <div class="flex items-center justify-between mb-3">
-                                    <div class="flex items-center gap-2">
-                                        <Activity class="h-5 w-5 text-muted-foreground" /> 
-                                        <h3 class="font-semibold">Airflow DAGs</h3>
-                                    </div>
-                                    <Badge :variant="airflowStatus.failed > 0 ? 'destructive' : 'success'">
-                                        {{ airflowStatus.running }}/{{ airflowStatus.total }} Running
-                                    </Badge>
-                                </div>
-                                <!-- Optional: Add more detailed Airflow stats if needed -->
-                            </div>
-
-                            <!-- Website Status Table -->
-                            <div>
-                                <div class="flex items-center justify-between mb-3">
-                                    <div class="flex items-center gap-2">
-                                        <Globe2 class="h-5 w-5 text-muted-foreground" />
-                                        <h3 class="font-semibold">Website Health</h3>
-                                    </div>
-                                    <!-- Maybe add overall status? -->
-                                </div>
-                                <Table v-if="websiteStatus.length > 0">
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>Site</TableHead>
-                                            <TableHead>Status</TableHead>
-                                            <TableHead>Latency</TableHead>
-                                            <TableHead>Uptime</TableHead>
-                                            <TableHead class="text-right">Link</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        <TableRow v-for="site in websiteStatus" :key="site.name">
-                                            <TableCell class="font-medium">{{ site.name }}</TableCell>
-                                            <TableCell>
-                                                <Badge :variant="site.status === 'healthy' ? 'success' : 'destructive'">
-                                                    {{ site.status }}
-                                                </Badge>
-                                            </TableCell>
-                                            <TableCell>{{ site.latency }}</TableCell>
-                                            <TableCell>{{ site.uptime }}</TableCell>
-                                            <TableCell class="text-right">
-                                                <Button variant="ghost" size="sm" asChild>
-                                                    <a :href="'https://' + site.name" target="_blank" rel="noopener noreferrer">
-                                                        Visit
-                                                    </a>
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    </TableBody>
-                                </Table>
-                                <p v-else class="text-sm text-muted-foreground">
-                                    Website health data not available.
-                                </p>
-                            </div>
+                         <!-- Actual K8s Content -->
+                         <div v-else class="space-y-4">
+                             <div class="flex items-center justify-between">
+                                 <span class="text-sm text-muted-foreground">Overall Deployment Status</span>
+                                <Badge :variant="k8sStatus.error > 0 ? 'destructive' : k8sStatus.warning > 0 ? 'warning' : 'success'">
+                                    {{ k8sStatus.healthy }}/{{ k8sStatus.total }} Healthy
+                                </Badge>
+                             </div>
+                             <!-- List Problematic Deployments -->
+                             <div v-if="problemDeployments.length > 0" class="pt-2">
+                                <h4 class="mb-2 text-sm font-medium text-amber-600 dark:text-amber-500">Issues Detected:</h4>
+                                <ul class="space-y-1">
+                                    <li v-for="dep in problemDeployments" :key="dep.name" class="text-xs flex items-center gap-2" :class="{'animate-pulse': dep.status === 'error' || dep.status === 'warning'}">
+                                        <Badge :variant="dep.status === 'error' ? 'destructive' : 'warning'" size="sm">{{ dep.status }}</Badge>
+                                        <span>{{ dep.name }} <span v-if="dep.namespace" class="text-muted-foreground">({{ dep.namespace }})</span></span>
+                                    </li>
+                                </ul>
+                             </div>
                         </div>
                     </CardContent>
                 </Card>
 
-                <!-- Recent Activity Card -->
-                <Card class="col-span-1 lg:col-span-3">
+                <!-- Airflow Card -->
+                <Card>
+                    <CardHeader>
+                         <CardTitle class="flex items-center gap-2">
+                            <Activity class="h-5 w-5" /> 
+                            Airflow Status
+                        </CardTitle>
+                        <CardDescription>DAG execution summary.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div v-if="loading" class="space-y-2">
+                            <Skeleton class="h-6 w-24" /> 
+                            <Skeleton class="h-4 w-1/2" />
+                        </div>
+                         <div v-else class="flex items-center justify-between">
+                             <span class="text-sm text-muted-foreground">DAG Run Status</span>
+                            <Badge :variant="airflowStatus.failed > 0 ? 'destructive' : 'success'">
+                                {{ airflowStatus.running }}/{{ airflowStatus.total }} Running
+                            </Badge>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <!-- Website Status Card -->
+                <Card>
+                    <CardHeader>
+                         <CardTitle class="flex items-center gap-2">
+                            <Globe2 class="h-5 w-5" />
+                            Website Health
+                        </CardTitle>
+                         <CardDescription>Public website availability and performance.</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <!-- Skeleton for Table -->
+                         <div v-if="loading" class="space-y-2 pt-2">
+                            <Skeleton class="h-8 w-full" />
+                            <Skeleton class="h-8 w-full" />
+                            <Skeleton class="h-8 w-full" />
+                        </div>
+                        <!-- Scrollable Table Container -->
+                        <div v-else class="max-h-[350px] overflow-y-auto relative">
+                            <!-- Use sortedWebsiteStatus -->
+                            <Table v-if="sortedWebsiteStatus.length > 0">
+                                <TableHeader class="sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+                                    <TableRow>
+                                        <TableHead>Site</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead class="hidden sm:table-cell">Latency</TableHead>
+                                        <TableHead class="hidden md:table-cell">Uptime</TableHead>
+                                        <TableHead class="text-right">Link</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                     <!-- Use sortedWebsiteStatus -->
+                                    <TableRow v-for="site in sortedWebsiteStatus" :key="site.name">
+                                        <TableCell class="font-medium">{{ site.name }}</TableCell>
+                                        <TableCell>
+                                            <!-- Add conditional pulse animation -->
+                                            <Badge 
+                                                :variant="site.status === 'healthy' ? 'success' : 'destructive'" 
+                                                class="text-xs" 
+                                                :class="{'animate-pulse': site.status !== 'healthy'}"
+                                            >
+                                                {{ site.status }}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell class="hidden sm:table-cell">{{ site.latency }}</TableCell>
+                                        <TableCell class="hidden md:table-cell">{{ site.uptime }}</TableCell>
+                                        <TableCell class="text-right">
+                                            <!-- Fix button size -->
+                                            <Button variant="ghost" size="sm" asChild> 
+                                                <a :href="'https://' + site.name" target="_blank" rel="noopener noreferrer">
+                                                    Visit
+                                                </a>
+                                            </Button>
+                                        </TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+                            <p v-else class="text-sm text-muted-foreground pt-4">
+                                Website health data not available.
+                            </p>
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <!-- Recent Activity Card (Remains the same) -->
+                <Card>
                     <CardHeader>
                         <CardTitle>Recent Activity</CardTitle>
                         <CardDescription>Latest actions performed in the system.</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        <div class="space-y-4">
+                         <div v-if="loading" class="space-y-4">
+                             <div class="flex items-start space-x-3">
+                                <Skeleton class="h-8 w-8 rounded-full" />
+                                <div class="flex-1 space-y-1">
+                                    <Skeleton class="h-4 w-3/4" />
+                                    <Skeleton class="h-4 w-1/2" />
+                                </div>
+                            </div>
+                             <div class="flex items-start space-x-3">
+                                <Skeleton class="h-8 w-8 rounded-full" />
+                                <div class="flex-1 space-y-1">
+                                    <Skeleton class="h-4 w-3/4" />
+                                    <Skeleton class="h-4 w-1/2" />
+                                </div>
+                            </div>
+                        </div>
+                         <div v-else class="space-y-4">
                             <div v-for="activity in recentActivity" :key="activity.id" class="flex items-start space-x-3">
                                 <Avatar class="h-8 w-8 border">
+                                    <!-- Assuming activity.icon is a Vue component -->
                                     <component :is="activity.icon" class="h-4 w-4 m-auto text-muted-foreground" />
                                 </Avatar>
                                 <div class="flex-1 space-y-1">

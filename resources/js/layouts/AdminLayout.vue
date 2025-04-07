@@ -60,14 +60,14 @@ interface Auth {
     user_permissions?: string[];
 }
 
-interface NavigationItem {
+export interface NavigationItem {
     name: string;
     href: string;
     icon: any;
     permission?: string;
 }
 
-interface UserNavigationItem {
+export interface UserNavigationItem {
     name: string;
     href: string;
     icon: any;
@@ -76,6 +76,17 @@ interface UserNavigationItem {
 
 const page = usePage<{ auth: Auth }>();
 const auth = computed(() => page.props.auth);
+
+// Log the auth data received by the component
+console.log("--- [AdminLayout] Auth Data Start ---");
+try {
+    console.log(JSON.stringify(auth.value, null, 2));
+} catch (e) {
+    console.error("[AdminLayout] Failed to stringify auth.value:", e);
+    console.log("[AdminLayout] Raw auth.value:", auth.value);
+}
+console.log("--- [AdminLayout] Auth Data End ---");
+
 const isSidebarOpen = ref(true);
 const isProfileMenuOpen = ref(false);
 
@@ -87,7 +98,7 @@ const navigation: NavigationItem[] = [
     },
     {
         name: 'Users',
-        href: route('users.manage'),
+        href: route('admin.users.index'),
         icon: Users,
         permission: 'manage-users',
     },
@@ -130,29 +141,48 @@ const userNavigation: UserNavigationItem[] = [
 ];
 
 const hasPermission = (permission?: string) => {
+    console.log(`[AdminLayout] Checking hasPermission for: ${permission || '(no permission specified)'}`);
     if (!permission) return true;
-    return auth.value?.user_permissions?.includes(permission) || 
-           auth.value?.user?.keycloak_roles?.some((role: KeycloakRole) => 
-               role.role_name === 'admin' || 
-               role.role_name === 'developer' || 
-               role.role_name === permission
-           );
+    const userPerms = auth.value?.user_permissions ?? [];
+    const userRoles = auth.value?.user?.keycloak_roles ?? [];
+    console.log(`[AdminLayout] User Perms for ${permission}:`, JSON.stringify(userPerms));
+    console.log(`[AdminLayout] User Roles for ${permission}:`, JSON.stringify(userRoles));
+
+    const hasAdminRole = userRoles.some((role: KeycloakRole) => role.role_name === 'admin');
+    const hasDevRole = userRoles.some((role: KeycloakRole) => role.role_name === 'developer');
+    const hasSpecificPerm = userPerms.includes(permission);
+    const roleMatchesPerm = userRoles.some((role: KeycloakRole) => role.role_name === permission);
+
+    const result = hasSpecificPerm || hasAdminRole || hasDevRole || roleMatchesPerm;
+    console.log(`[AdminLayout] Permission '${permission}' granted: ${result}`, { hasAdminRole, hasDevRole, hasSpecificPerm, roleMatchesPerm });
+
+    return result;
 };
 
-const isCurrentRoute = (url: string) => {
-    return page.url.startsWith(url);
-};
+// const isCurrentRoute = (url: string) => {
+//     return page.url.startsWith(url);
+// };
 
 // Filter navigation items based on permissions
 const filteredNavigation = computed(() => {
-    return navigation.filter(item => hasPermission(item.permission));
+    console.log('[AdminLayout] Computing filteredNavigation...');
+    const filtered = navigation.filter(item => {
+        console.log(`[AdminLayout] Filtering item: ${item.name} (requires ${item.permission || 'none'})`);
+        return hasPermission(item.permission);
+    });
+    console.log('[AdminLayout] Final Filtered Navigation Names:', JSON.stringify(filtered.map(item => item.name), null, 2));
+    return filtered;
 });
 </script>
 
 <template>
     <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
         <!-- Top Navigation -->
-        <AppHeader :breadcrumbs="breadcrumbs" />
+        <AppHeader 
+            :breadcrumbs="breadcrumbs" 
+            :navigation="filteredNavigation" 
+            :user-navigation="userNavigation"
+         />
 
         <!-- Page Content -->
         <main class="flex-1">

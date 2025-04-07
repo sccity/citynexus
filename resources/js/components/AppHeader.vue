@@ -44,6 +44,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Command, CommandDialog, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { getInitials } from '@/composables/useInitials';
+import type { NavigationItem, UserNavigationItem } from '@/layouts/AdminLayout.vue';
 import type { Auth, BreadcrumbItem, KeycloakConfig } from '@/types';
 import { cn } from '@/lib/utils';
 import { useSettingsStore } from '@/stores/settings';
@@ -52,10 +53,14 @@ import type { Appearance } from '@/composables/useAppearance';
 
 interface Props {
     breadcrumbs?: BreadcrumbItem[];
+    navigation?: NavigationItem[];
+    userNavigation?: UserNavigationItem[];
 }
 
 const props = withDefaults(defineProps<Props>(), {
     breadcrumbs: () => [],
+    navigation: () => [],
+    userNavigation: () => [],
 });
 
 const page = usePage<{ auth: Auth, keycloak: KeycloakConfig }>();
